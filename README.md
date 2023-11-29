@@ -1,7 +1,7 @@
 > mockup
 # Templatte - Crafting Configurations Like a Barista ☕️
 
-![Templatte Logo](link-to-templatte-logo.png)
+![Templatte Logo](static/templatte.png)
 
 Welcome to Templatte, where crafting configuration files is as delightful as brewing your favorite coffee.
 
