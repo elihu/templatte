@@ -1,9 +1,10 @@
 > mockup
-# Templatte - Crafting Configurations Like a Barista ☕️
+# **Templatte** 
+### *Crafting Configurations Like a Barista* 
 
 <p align="center"><img src="static/templatte.png" alt="image" width="300" height="auto">
 
-Welcome to Templatte, where crafting configuration files is as delightful as brewing your favorite coffee.
+Welcome to **Templatte**, where crafting configuration files is as delightful as brewing your favorite coffee.
 
 ## ☕️ Brewing Your Configurations
 
@@ -37,16 +38,16 @@ templatte brew --blend mocha-delight.json --pour mocha-config.json
 ```
 
 ## 🤝 Coffee Talk & Contributions
-Join our coffee circle! Become a brew master with our guide here.
+Join our coffee circle! Become a brew master with our guide [here](.).
 
 ## 🚨 Spills and Clean-Ups
-- Spill: Template grounds lost.
-  - Clean-Up: Double-check the path and ensure the format is as smooth as your espresso shot.
+- **Spill**: Template grounds lost.
+  - *Clean-Up*: Double-check the path and ensure the format is as smooth as your espresso shot.
 
-- Spill: Unexpected latte art in the output.
-  - Clean-Up: Confirm the output options; the latte art should be delightful, not unexpected.
+- **Spill**: Unexpected latte art in the output.
+  - *Clean-Up*: Confirm the output options; the latte art should be delightful, not unexpected.
     
 For coffee emergencies, reach out to our Head Barista Bean Master.
 
 ## 📃 Coffee Stain License
-Templatte is licensed under the __ license.
+**Templatte** is licensed under the [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) license.
