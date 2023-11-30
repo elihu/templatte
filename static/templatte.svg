@@ -7,7 +7,7 @@
    viewBox="0 0 210 297"
    version="1.1"
    id="svg1"
-   inkscape:version="1.3.1 (91b66b0, 2023-11-16)"
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
    sodipodi:docname="templatte.svg"
    inkscape:export-filename="templatte.png"
    inkscape:export-xdpi="12.828453"
@@ -27,14 +27,20 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      inkscape:zoom="1.1893044"
-     inkscape:cx="536.02761"
-     inkscape:cy="436.80995"
-     inkscape:window-width="1512"
-     inkscape:window-height="916"
-     inkscape:window-x="2560"
-     inkscape:window-y="502"
+     inkscape:cx="416.63009"
+     inkscape:cy="575.96693"
+     inkscape:window-width="1440"
+     inkscape:window-height="816"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer1" />
+     inkscape:current-layer="layer1"
+     inkscape:pageshadow="2"
+     showgrid="true">
+    <inkscape:grid
+       type="xygrid"
+       id="grid4545" />
+  </sodipodi:namedview>
   <defs
      id="defs1">
     <inkscape:path-effect
@@ -60,58 +66,79 @@
      inkscape:groupmode="layer"
      id="layer1">
     <ellipse
-       style="fill:#ffffff;stroke-width:1.16833"
+       style="fill:#f5f5dc;stroke-width:1.16833;fill-opacity:1"
        id="path1-3"
        cx="101.78036"
        cy="171.2511"
        rx="42.714043"
-       ry="41.601692" />
+       ry="41.601692"
+       inkscape:export-filename="/home/elihu/Descargas/templatte.png"
+       inkscape:export-xdpi="76.929573"
+       inkscape:export-ydpi="76.929573" />
     <ellipse
-       style="fill:#ffffff;stroke-width:0.837912"
+       style="fill:#f5f5dc;stroke-width:0.837912;fill-opacity:1"
        id="path1-3-2"
        cx="101.3322"
        cy="172.9183"
        rx="49.499348"
-       ry="18.464918" />
+       ry="18.464918"
+       inkscape:export-filename="/home/elihu/Descargas/templatte.png"
+       inkscape:export-xdpi="76.929573"
+       inkscape:export-ydpi="76.929573" />
     <ellipse
        style="fill:#502d16;stroke-width:1.02033"
        id="path1"
        cx="102.11326"
        cy="171.30112"
        rx="37.374786"
-       ry="36.26244" />
+       ry="36.26244"
+       inkscape:export-filename="/home/elihu/Descargas/templatte.png"
+       inkscape:export-xdpi="76.929573"
+       inkscape:export-ydpi="76.929573" />
     <g
-       id="g3">
+       id="g4543"
+       transform="matrix(1.1298009,0,0,0.94577253,-12.884552,12.20949)">
       <path
-         style="fill:#ffffff;stroke-width:2.61684"
+         style="fill:#f5f5dc;fill-opacity:1;stroke-width:2.61684"
          id="path2"
          sodipodi:type="arc"
          sodipodi:cx="102.00203"
-         sodipodi:cy="165.7713"
-         sodipodi:rx="24.582823"
-         sodipodi:ry="31.558666"
-         sodipodi:start="5.9551034"
-         sodipodi:end="3.4728767"
+         sodipodi:cy="165.33501"
+         sodipodi:rx="23.940414"
+         sodipodi:ry="31.994961"
+         sodipodi:start="5.8582643"
+         sodipodi:end="3.5843217"
          sodipodi:open="true"
-         sodipodi:arc-type="arc" />
+         sodipodi:arc-type="arc"
+         d="m 123.81345,152.14512 a 23.940414,31.994961 0 0 1 -7.14633,38.47932 23.940414,31.994961 0 0 1 -29.664816,-0.35301 23.940414,31.994961 0 0 1 -6.632495,-38.64329" />
       <ellipse
-         style="fill:#502d16;stroke-width:0.456688"
-         id="path1-0"
-         cx="101.95821"
-         cy="158.27458"
-         rx="23.470476"
-         ry="11.568383" />
+         style="fill:#f5f5dc;fill-opacity:1;stroke-width:0.624915"
+         id="path1-0-3"
+         cx="102.11362"
+         cy="161.12422"
+         rx="24.223103"
+         ry="20.987823" />
     </g>
+    <ellipse
+       style="fill:#502d16;stroke-width:0.442503"
+       id="path1-0"
+       cx="102.15264"
+       cy="161.1593"
+       rx="22.102898"
+       ry="11.532848" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:14.1111px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
-       x="84.760681"
-       y="158.17545"
-       id="text3"><tspan
+       style="font-style:normal;font-weight:normal;font-size:14.1111px;line-height:1.25;font-family:sans-serif;fill:#f5f5dc;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="85.001663"
+       y="164.87114"
+       id="text3"
+       inkscape:export-filename="/home/elihu/Descargas/templatte.png"
+       inkscape:export-xdpi="76.929573"
+       inkscape:export-ydpi="76.929573"><tspan
          sodipodi:role="line"
          id="tspan3"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:14.1111px;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';fill:#ffffff;stroke-width:0.264583"
-         x="84.760681"
-         y="158.17545">{ . }</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:14.1111px;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';fill:#f5f5dc;fill-opacity:1;stroke-width:0.264583"
+         x="85.001663"
+         y="164.87114">{ . }</tspan></text>
   </g>
 </svg>
