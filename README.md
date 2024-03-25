@@ -17,8 +17,6 @@ pip install templatte
 ## 📜 Menu of Brews
 Choose your brew with finesse. Here's your barista command for a perfect cup:
 
-Sure, here's the breakdown of each command in markdown:
-
 ### `deploy`
 This command populates configuration template files by parsing the values specified in a `templatte.toml` file. It likely reads the `templatte.toml` file to extract key-value pairs and then uses these values to fill in placeholders or templates within configuration files, creating populated configuration files ready for use.
 
