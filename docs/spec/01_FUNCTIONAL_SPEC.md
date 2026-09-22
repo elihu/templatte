@@ -42,6 +42,7 @@ templatte genelatte [OPTIONS]
 * `--exclude`, `-e` (`list[str]`, optional): Additional glob patterns to exclude. Default excludes: `.git/**`, `.venv/**`, `__pycache__/**`, `node_modules/**`, `dist/**`, `templatte.toml*`.
 * `--force`, `-y` (`bool`, default: `False`): Overwrite existing `.latte` files without prompting.
 * `--dry-run` (`bool`, default: `False`): Scan and display what would be created without writing any files to disk.
+* `--no-gitignore-update` (`bool`, default: `False`): Do not automatically append `templatte.toml` to workspace `.gitignore`.
 
 #### Behavior Specification
 1. Resolve workspace path relative to current working directory.
@@ -55,7 +56,8 @@ templatte genelatte [OPTIONS]
    e. Record values in `templatte.toml` under `[files."<relative_path>".values]`.
 5. Write the `.latte` files alongside each original file.
 6. Write or update `templatte.toml`.
-7. Output summary (files scanned, templates generated, keys extracted).
+7. Unless `--no-gitignore-update` is true, ensure `.gitignore` in workspace ignores unencrypted `templatte.toml` and runtime configs.
+8. Output summary (files scanned, templates generated, keys extracted).
 
 ---
 

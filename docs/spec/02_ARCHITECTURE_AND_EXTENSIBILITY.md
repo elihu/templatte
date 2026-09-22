@@ -224,3 +224,30 @@ To prevent data corruption during crashes or aborted runs:
    * Relative paths are validated to ensure they do not traverse outside the workspace root (`path.resolve().is_relative_to(workspace_root)`).
 3. **Workspace Ignore Filtering:**
    * Files matching `.gitignore` or standard excludes (`.git`, `.venv`, `node_modules`, `dist`, `__pycache__`) are skipped automatically.
+
+---
+
+## 6. Modern Packaging, Toolchain & Git Architecture
+
+### 6.1 Toolchain Standards: `uv` and PEP 621
+Templatte 2.0 standardizes exclusively on **`uv`** as its fast, deterministic package manager, virtual environment manager, and project toolchain:
+* **Project Spec:** Standard Python PEP 621 in `pyproject.toml`.
+* **Build System Backend:** `hatchling`.
+* **Target Python Versions:** Python `>=3.10` up to `3.14+`.
+* **Dependency Matrix:**
+  * `typer>=0.15.1`: Modern typed CLI with sub-command routing and shell completion.
+  * `rich>=13.7.1`: Modern terminal output, tables, status spinners, and syntax highlighting.
+  * `cryptography>=42.0.0`: Authenticated AES-256-GCM cipher without external binary requirements.
+  * `tomlkit>=0.13.2`: Comment-preserving, structure-preserving TOML parser and serializer.
+  * `pyyaml>=6.0.2`: Standard YAML serialization.
+  * `pydantic>=2.6.0`: Strict data validation and schema serialization.
+* **Development & Quality Tools:**
+  * `pytest>=8.0.0`, `pytest-cov>=4.1.0`
+  * `ruff>=0.3.0` (Linter and code formatter replacing flake8, isort, and black).
+
+### 6.2 Git Architecture (`templatte.utils.git`)
+The utility module `templatte.utils.git` encapsulates repository interaction:
+* `is_git_repo(path: Path) -> bool`
+* `get_tracked_files(workspace: Path) -> set[str]`: queries `git ls-files` without shell injection risk.
+* `ensure_gitignored(workspace: Path, patterns: list[str]) -> bool`: parses and safely updates `.gitignore`.
+

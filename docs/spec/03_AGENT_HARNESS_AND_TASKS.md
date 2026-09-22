@@ -2,224 +2,261 @@
 
 **Document:** `docs/spec/03_AGENT_HARNESS_AND_TASKS.md`  
 **Target:** AI Coding Agents (including lightweight/compact models) & Pair Programmers  
-**Design Philosophy:** Spec-Driven Development (SDD) with strict pre/post-conditions, deterministic test verification, and automated guardrails.
+**Design Philosophy:** Spec-Driven Development (SDD) with strict pre/post-conditions, deterministic test verification, and branch-by-branch Git consolidation.
 
 ---
 
 ## 1. Operating Rules for AI Agents
 
-Every AI agent implementing any task in this roadmap **MUST** comply with these non-negotiable rules:
+Every AI agent implementing any task in this roadmap **MUST** strictly comply with these non-negotiable rules:
 
 1. **NEVER Delete Templates on Deploy:** `deploy` writes concrete configuration files. It **must never** delete, rename, or truncate `.latte` files.
 2. **NEVER Use External CLI Binaries for Cryptography:** Do not call `subprocess.run(["gpg", ...])`. Use the pure-Python `cryptography` library.
-3. **Atomic File Operations:** Always write to a temporary file before renaming (`AtomicFileWriter`) to avoid corrupted partial files.
+3. **Atomic File Operations:** Always write to a temporary file before renaming (`atomic_write`) to avoid corrupted partial files.
 4. **Normalized Workspace Paths:** Always store keys and file references with forward slashes (`/`), stripped of leading `./` or drive letters.
-5. **Deterministic Testing:** No task is complete until its corresponding test command passes with zero warnings or errors.
+5. **Deterministic Testing:** No task or branch is complete until its corresponding test command passes with zero warnings and zero errors via `uv run pytest`.
+6. **Branch-by-Branch Git Isolation:** Every phase/task must be executed in its designated `feat/*` branch created off `develop`, tested, and merged into `develop`. Never commit feature implementations directly to `main` or `develop`.
 
 ---
 
-## 2. Phased Implementation Roadmap
+## 2. Phased Branch-by-Branch Roadmap
+
+All feature branches branch from `develop` and merge back into `develop` upon completion:
 
 ```mermaid
 flowchart TD
-    P0["Phase 0: Environment & Project Setup"] --> P1["Phase 1: Domain Entities & Exceptions"]
-    P1 --> P2["Phase 2: Format Adapters"]
-    P2 --> P3["Phase 3: Cryptography Engine"]
-    P3 --> P4["Phase 4: Core Services"]
-    P4 --> P5["Phase 5: CLI & Rich Presenter"]
-    P5 --> P6["Phase 6: End-to-End Test Suite & Verification"]
+    D["develop (Branch baseline)"] --> B1["Branch 1: feat/01-uv-scaffolding-and-cleanup"]
+    B1 --> M1["Merge into develop"]
+    M1 --> B2["Branch 2: feat/02-domain-entities-and-exceptions"]
+    B2 --> M2["Merge into develop"]
+    M2 --> B3["Branch 3: feat/03-multiformat-adapters"]
+    B3 --> M3["Merge into develop"]
+    M3 --> B4["Branch 4: feat/04-native-crypto-engine"]
+    B4 --> M4["Merge into develop"]
+    M4 --> B5["Branch 5: feat/05-services-and-git"]
+    B5 --> M5["Merge into develop"]
+    M5 --> B6["Branch 6: feat/06-cli-presentation"]
+    B6 --> M6["Merge into develop"]
+    M6 --> B7["Branch 7: feat/07-precommit-and-e2e"]
+    B7 --> M7["Merge into develop -> Tag v0.2.0"]
 ```
 
 ---
 
 ## 3. Detailed Atomic Task Specifications
 
-### Phase 0: Modern Project Setup & Dependencies
-#### `TASK-001`: Update `pyproject.toml` and Testing Tools
+### Phase 0 / Branch 1: Modern Project Setup with `uv` & Legacy Cleanup
+* **Branch Name:** `feat/01-uv-scaffolding-and-cleanup`
+* **Base Branch:** `develop`
+
+#### `TASK-001`: Modernize `pyproject.toml` (PEP 621 + Hatchling)
 * **Target File:** `pyproject.toml`
-* **Objective:** Modernize dependencies to support Python 3.10+, Typer 0.15+, Cryptography, Rich, and Pytest.
-* **Requirements:**
-  - Build system: `poetry-core` or standard PEP 621.
-  - Dependencies:
-    ```toml
-    [tool.poetry.dependencies]
-    python = ">=3.10,<4.0"
-    typer = ">=0.15.0"
-    rich = ">=13.7.0"
-    cryptography = ">=42.0.0"
-    pyyaml = ">=6.0.1"
-    tomlkit = ">=0.12.0"
-    pydantic = ">=2.6.0"
-    
-    [tool.poetry.group.dev.dependencies]
-    pytest = ">=8.0.0"
-    pytest-cov = ">=4.1.0"
-    ruff = ">=0.3.0"
-    ```
-  - Remove `getpass4` completely.
-* **Verification Command:** `uv sync || poetry install`
+* **Objective:** Replace obsolete Poetry configuration with modern PEP 621 standard using `hatchling` backend and `uv` package manager.
+* **Specification:**
+  ```toml
+  [build-system]
+  requires = ["hatchling"]
+  build-backend = "hatchling.build"
+
+  [project]
+  name = "templatte"
+  version = "0.2.0"
+  description = "Automated configuration lifecycle management and secret encryption with a barista touch"
+  readme = "README.md"
+  license = { text = "Apache-2.0" }
+  authors = [{ name = "elihu" }]
+  requires-python = ">=3.10"
+  dependencies = [
+      "typer>=0.15.1",
+      "rich>=13.7.1",
+      "cryptography>=42.0.0",
+      "tomlkit>=0.13.2",
+      "pyyaml>=6.0.2",
+      "pydantic>=2.6.0",
+  ]
+
+  [project.scripts]
+  templatte = "templatte.cli.app:app"
+
+  [dependency-groups]
+  dev = [
+      "pytest>=8.0.0",
+      "pytest-cov>=4.1.0",
+      "ruff>=0.3.0",
+  ]
+
+  [tool.hatch.build.targets.wheel]
+  packages = ["templatte"]
+
+  [tool.ruff]
+  line-length = 100
+  target-version = "py310"
+
+  [tool.pytest.ini_options]
+  testpaths = ["tests"]
+  pythonpath = ["."]
+  ```
+
+#### `TASK-002`: Purge Legacy Prototype Files
+* **Files to Delete:**
+  * `poetry.lock` (replaced by `uv.lock`)
+  * `templatte.toml` (old test artifact in root)
+  * `templatte/restore.py` (obsolete prototype with syntax errors)
+  * `templatte/usecase.py`, `templatte/usecase2.py`, `templatte/usecase3.py` (legacy prototypes)
+  * `tests2/`, `tests3/` (old unmanaged test folders)
+* **Verification Command:** `uv sync && uv run pytest`
+* **Merge Gate:** Clean `git status`, successful `uv sync`. Merge into `develop`.
 
 ---
 
-### Phase 1: Domain Models & Exceptions
+### Phase 1 / Branch 2: Domain Entities, Exceptions & Registry
+* **Branch Name:** `feat/02-domain-entities-and-exceptions`
+* **Base Branch:** `develop`
+
 #### `TASK-101`: Domain Exceptions Hierarchy
 * **Target File:** `templatte/core/exceptions.py`
-* **Objective:** Define explicit, typed exceptions mapped to CLI exit codes.
-* **Specification:**
-  ```python
-  class TemplatteError(Exception):
-      """Base exception with exit_code."""
-      exit_code: int = 1
-
-  class ValidationError(TemplatteError):
-      exit_code: int = 3
-
-  class MissingValuesError(ValidationError):
-      def __init__(self, missing_keys: list[str], file_path: str):
-          super().__init__(f"Missing values for {file_path}: {missing_keys}")
-          self.missing_keys = missing_keys
-          self.file_path = file_path
-
-  class CryptoError(TemplatteError):
-      exit_code: int = 4
-
-  class InvalidPassphraseError(CryptoError):
-      exit_code: int = 4
-
-  class DriftDetectedError(TemplatteError):
-      exit_code: int = 5
-  ```
-* **Verification Command:** `pytest tests/unit/test_exceptions.py`
+* **Objective:** Define explicit typed exceptions mapped to CLI exit codes (0–5).
+* **Verification Command:** `uv run pytest tests/unit/test_exceptions.py`
 
 #### `TASK-102`: Domain Models (`models.py`)
 * **Target File:** `templatte/core/models.py`
-* **Objective:** Immutable or Pydantic data classes representing workspace entities.
-* **Specification:**
-  - `ConfigFile`: `path: Path`, `format: str`, `content: str`
-  - `TemplateFile`: `path: Path`, `target_config_path: Path`, `placeholders: set[str]`
-  - `ValuesRegistry`: `version: int`, `files: dict[str, dict[str, Any]]`
-  - `CryptoEnvelope`: `version: int`, `algorithm: str`, `salt: str`, `iv: str`, `tag: str`, `ciphertext: str`
-* **Verification Command:** `pytest tests/unit/test_models.py`
+* **Objective:** Pydantic v2 data models for `ConfigFile`, `TemplateFile`, `ValuesRegistry`, and `CryptoEnvelope`.
+* **Verification Command:** `uv run pytest tests/unit/test_models.py`
+
+#### `TASK-103`: Values Registry Persistence (`registry.py`)
+* **Target File:** `templatte/core/registry.py`
+* **Objective:** Atomically load and save `templatte.toml` using `tomlkit` to preserve comments and table structure.
+* **Verification Command:** `uv run pytest tests/unit/test_registry.py`
+* **Merge Gate:** 100% tests passing. Merge into `develop`.
 
 ---
 
-### Phase 2: Format Adapters (Ports & Adapters)
-#### `TASK-201`: Adapter Base Protocol
-* **Target File:** `templatte/adapters/base.py`
+### Phase 2 / Branch 3: Multiformat Adapters (Ports & Adapters)
+* **Branch Name:** `feat/03-multiformat-adapters`
+* **Base Branch:** `develop`
+
+#### `TASK-201`: Adapter Base Protocol & Registry
+* **Target File:** `templatte/adapters/base.py`, `templatte/adapters/__init__.py`
 * **Specification:** As defined in `02_ARCHITECTURE_AND_EXTENSIBILITY.md`.
 
 #### `TASK-202`: TOML Adapter with Comment Preservation
 * **Target File:** `templatte/adapters/toml_adapter.py`
-* **Objective:** Parse TOML, extract dot-paths, generate valid `.latte` template, and render concrete TOML.
-* **Implementation Details:**
-  - Use `tomlkit` to preserve comments and table structure.
-  - Flatten nested tables using dot notation (`database.ports`).
-  - Render: replace placeholder strings `"{{ key }}"` with typed parsed objects.
-* **Verification Command:** `pytest tests/unit/adapters/test_toml_adapter.py`
+* **Objective:** Extract dot-paths and render valid TOML using `tomlkit`. Preserves inline and block comments.
 
-#### `TASK-203`: YAML & JSON Adapters
-* **Target Files:** `templatte/adapters/yaml_adapter.py`, `templatte/adapters/json_adapter.py`
-* **Objective:** Add YAML (PyYAML/ruamel) and JSON support conforming to `FormatAdapter`.
-* **Verification Command:** `pytest tests/unit/adapters/test_yaml_json_adapters.py`
+#### `TASK-203`: YAML, JSON, INI, and .env Adapters
+* **Target Files:**
+  * `templatte/adapters/yaml_adapter.py`
+  * `templatte/adapters/json_adapter.py`
+  * `templatte/adapters/ini_adapter.py`
+  * `templatte/adapters/env_adapter.py`
+* **Verification Command:** `uv run pytest tests/unit/adapters/test_adapters.py`
+* **Merge Gate:** All adapter roundtrip tests pass. Merge into `develop`.
 
 ---
 
-### Phase 3: Cryptography Engine
+### Phase 3 / Branch 4: Native Cryptography Engine
+* **Branch Name:** `feat/04-native-crypto-engine`
+* **Base Branch:** `develop`
+
 #### `TASK-301`: Pure-Python AES-256-GCM Engine
 * **Target File:** `templatte/adapters/crypto/engine.py`
-* **Objective:** Implement zero-system-dependency encryption and decryption using PBKDF2-HMAC-SHA256 and AES-256-GCM.
-* **Safety Tests:**
+* **Objective:** Zero-system-dependency authenticated encryption with PBKDF2-HMAC-SHA256 (600,000 iterations).
+* **Security & Failure Tests:**
   - Round-trip encrypt -> decrypt matches original bytes exactly.
-  - Tampering with 1 byte of ciphertext raises `InvalidTag` / `CryptoError`.
-  - Supplying the wrong passphrase raises `InvalidPassphraseError`.
-* **Verification Command:** `pytest tests/unit/crypto/test_engine.py`
+  - Tampering with 1 byte of ciphertext raises `InvalidPassphraseError`.
+  - Wrong passphrase raises `InvalidPassphraseError`.
+  - Corrupted JSON envelope raises `CorruptedEnvelopeError`.
+* **Verification Command:** `uv run pytest tests/unit/crypto/test_engine.py`
+* **Merge Gate:** All crypto tests pass. Merge into `develop`.
 
 ---
 
-### Phase 4: Application Services (Use Cases)
-#### `TASK-401`: Generator Service (`genelatte`)
-* **Target File:** `templatte/core/services/generator.py`
-* **Requirements:**
-  - Scans workspace respecting ignore patterns.
-  - Generates `.latte` files alongside configs.
-  - Merges values into `templatte.toml` without clobbering existing unaffected keys.
-* **Verification Command:** `pytest tests/unit/services/test_generator.py`
+### Phase 4 / Branch 5: Application Services & Git Integration
+* **Branch Name:** `feat/05-services-and-git`
+* **Base Branch:** `develop`
 
-#### `TASK-402`: Deployer Service (`deploy`)
+#### `TASK-401`: Utilities & Git Helper (`fs.py`, `ignore.py`, `git.py`)
+* **Target Files:**
+  * `templatte/utils/fs.py` (atomic writes via `tempfile` and `os.replace`)
+  * `templatte/utils/ignore.py` (workspace filtering matching `.gitignore`)
+  * `templatte/utils/git.py` (git repo detection, tracked file query via `git ls-files`, `.gitignore` updater)
+
+#### `TASK-402`: Scanner & Generator Service (`genelatte`)
+* **Target Files:**
+  * `templatte/core/services/scanner.py`
+  * `templatte/core/services/generator.py`
+* **Requirement:** Generates `.latte` templates, writes `templatte.toml`, and appends `templatte.toml` to `.gitignore`.
+
+#### `TASK-403`: Deployer Service (`deploy`)
 * **Target File:** `templatte/core/services/deployer.py`
-* **STRICT INVARIANT:** Does NOT delete `.latte` files.
-* **Requirements:**
-  - Validates all keys exist; raises `MissingValuesError` if any placeholder is unbound.
-  - Performs atomic file writes using `AtomicFileWriter`.
-  - Supports `--dry-run` returning structured action plan.
-* **Verification Command:** `pytest tests/unit/services/test_deployer.py`
+* **STRICT INVARIANT:** Does NOT delete or alter `.latte` files. Renders concrete configs atomically.
 
-#### `TASK-403`: Cleaner Service (`grind`)
-* **Target File:** `templatte/core/services/cleaner.py`
-* **Requirements:**
-  - Targets ONLY concrete files that have an active `.latte` counterpart.
-  - Never deletes `.latte` files.
-  - Supports dry-run and backup archive creation.
-* **Verification Command:** `pytest tests/unit/services/test_cleaner.py`
-
-#### `TASK-404`: Checker Service (`check` / `roast`)
-* **Target File:** `templatte/core/services/checker.py`
-* **Requirements:**
-  - Cross-checks placeholders vs values registry.
-  - Detects drift between deployed files and template rendering.
-* **Verification Command:** `pytest tests/unit/services/test_checker.py`
+#### `TASK-404`: Cleaner (`grind`), Checker (`check`), & Crypto (`press`/`pour`)
+* **Target Files:**
+  * `templatte/core/services/cleaner.py`
+  * `templatte/core/services/checker.py` (detects missing keys, drift, and git leaks)
+  * `templatte/core/services/crypto.py`
+* **Verification Command:** `uv run pytest tests/unit/services/test_services.py`
+* **Merge Gate:** Full service lifecycle tests pass. Merge into `develop`.
 
 ---
 
-### Phase 5: CLI Presentation Layer
-#### `TASK-501`: Typer CLI Commands
-* **Target Files:** `templatte/cli/commands/*.py`
+### Phase 5 / Branch 6: CLI Presentation Layer (Typer & Rich)
+* **Branch Name:** `feat/06-cli-presentation`
+* **Base Branch:** `develop`
+
+#### `TASK-501`: CLI Framework & Commands
+* **Target Files:**
+  * `templatte/cli/app.py`
+  * `templatte/cli/console.py` (Rich barista theme, banners, tables)
+  * `templatte/cli/output.py` (JSON vs Human output formatting)
+  * `templatte/cli/commands/*.py` (`genelatte`, `deploy`, `grind`, `press`, `pour`, `check`, `diff`)
+  * `templatte/main.py` (entry point exposing `app = templatte.cli.app.app`)
 * **Requirements:**
-  - Wire all services to Typer commands with full options defined in `01_FUNCTIONAL_SPEC.md`.
-  - Support `--json` flag printing purely machine-readable JSON to stdout.
+  - Support global `--json` printing purely machine-readable JSON to stdout.
   - Map domain exceptions to exact exit codes (0, 1, 2, 3, 4, 5).
-  - Rich coffee-themed output for human terminal sessions.
-* **Verification Command:** `pytest tests/integration/test_cli.py`
+  - Support non-interactive passphrase reading via `--passphrase-env` and `--passphrase`.
+* **Verification Command:** `uv run pytest tests/integration/test_cli.py`
+* **Merge Gate:** CLI commands and exit codes verified. Merge into `develop`.
 
 ---
 
-## 4. Model Prompt Template for Delegating Tasks
+### Phase 6 / Branch 7: Pre-Commit Hooks & End-to-End Suite
+* **Branch Name:** `feat/07-precommit-and-e2e`
+* **Base Branch:** `develop`
 
-When delegating a task to a compact/lightweight AI agent (e.g. Flash models), use this exact prompt structure:
+#### `TASK-601`: Pre-Commit Hooks Definition
+* **Target File:** `.pre-commit-hooks.yaml`
+* **Objective:** Ship pre-commit hook running `templatte check --strict --check-git`.
+
+#### `TASK-602`: End-to-End Integration Suite
+* **Target File:** `tests/e2e/test_full_workflow.py`
+* **Verification Command:** `uv run pytest tests/e2e/ && uv run ruff check .`
+* **Merge Gate:** Full repository verification. Merge into `develop`.
+
+---
+
+## 4. AI Agent Task Execution Prompt Template
+
+When delegating any task unit to a compact/lightweight model:
 
 ```markdown
-You are an expert Python engineer implementing Templatte 2.0.
-Your task is: [INSERT TASK-ID, e.g., TASK-202: TOML Adapter]
+You are an expert Python engineer working on Templatte 2.0.
+Task ID: [TASK_ID, e.g. TASK-202]
+Git Working Branch: [BRANCH_NAME, e.g. feat/03-multiformat-adapters]
 
-Relevant Specifications to Follow:
-- Read `docs/spec/00_MASTER_SPEC.md` for domain rules.
-- Read `docs/spec/02_ARCHITECTURE_AND_EXTENSIBILITY.md` for interface contracts.
+Specifications to follow:
+- Read `docs/spec/00_MASTER_SPEC.md`
+- Read `docs/spec/02_ARCHITECTURE_AND_EXTENSIBILITY.md`
+- Read `docs/spec/04_GIT_AND_WORKFLOW_SPEC.md`
 
-Strict Invariants:
-1. NEVER delete or modify *.latte files during deployment.
-2. NEVER use external CLI tools (like gpg); use pure Python libraries.
-3. Write clean, type-annotated code (Python 3.10+).
+Non-negotiable Invariants:
+1. NEVER delete or alter *.latte files during deploy.
+2. NEVER call external system binaries (like gpg); use pure Python cryptography.
+3. Use `uv` for running tests: `uv run pytest <test_path>`.
 
-Files to create/modify:
-- [INSERT TARGET FILE]
-- [INSERT TEST FILE]
-
-Verification:
-Execute the command: `[INSERT TEST COMMAND]`
-Make sure all tests pass before completing your turn.
+Deliverables:
+- Target files to create/modify.
+- Unit tests proving correct behavior.
+Verification: Execute `[TEST_COMMAND]` and ensure 0 errors and 0 warnings.
 ```
-
----
-
-## 5. End-to-End Verification Matrix
-
-Before tagging a release or closing modernizations, the agent must run this comprehensive end-to-end scenario:
-
-| Step | Command | Expected Outcome |
-| :---: | :--- | :--- |
-| 1 | `templatte genelatte --workspace tests/synthetic` | Generates `.latte` files and `templatte.toml`. Exit code `0`. |
-| 2 | `templatte grind --workspace tests/synthetic --force` | Deletes concrete configs. `.latte` files remain intact. Exit code `0`. |
-| 3 | `templatte deploy --workspace tests/synthetic` | Restores concrete configs. **`.latte` files STILL exist.** Exit code `0`. |
-| 4 | `templatte check --workspace tests/synthetic --strict` | Verifies zero drift and complete values coverage. Exit code `0`. |
-| 5 | `templatte press --passphrase "Secret123!"` | Creates `templatte.toml.enc` and removes plaintext. Exit code `0`. |
-| 6 | `templatte pour --passphrase "Secret123!"` | Restores `templatte.toml`. Exit code `0`. |

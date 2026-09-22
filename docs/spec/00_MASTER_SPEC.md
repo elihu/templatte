@@ -113,6 +113,10 @@ Any implementation by an AI agent or human must strictly adhere to these invaria
    Every command must support non-interactive execution (flags or environment variables for passphrases), predictable exit codes, and structured JSON output mode (`--json`).
 6. **Reversibility & Idempotency (Invariant 6):**
    Running `genelatte` -> `deploy` must yield identical configuration content to the original files (round-trip idempotency). Running `deploy` multiple times must produce identical results without errors.
+7. **Git Integration & Secret Hygiene (Invariant 7):**
+   Unencrypted `templatte.toml` and concrete runtime configuration files must be automatically tracked in `.gitignore`. Only `*.latte` templates and encrypted envelopes (`templatte.toml.enc`) may be committed to Git. Templatte integrates natively with `git ls-files` to detect and prevent credential leaks.
+
+See [04_GIT_AND_WORKFLOW_SPEC.md](file:///home/elihu/GIT/templatte/docs/spec/04_GIT_AND_WORKFLOW_SPEC.md) for full Git branching, consolidation, and tool-level Git specifications.
 
 ---
 
