@@ -111,8 +111,48 @@ Any implementation by an AI agent or human must strictly adhere to these invaria
    Templatte must not depend on external binaries (`gpg`, `sops`, `age-cli`). All parsing, templating, and cryptography must run natively within the Python runtime.
 5. **Agent & CI/CD First-Class Ergonomics (Invariant 5):**
    Every command must support non-interactive execution (flags or environment variables for passphrases), predictable exit codes, and structured JSON output mode (`--json`).
-6. **Reversibility & Idempotency (Invariant 6):**
-   Running `genelatte` -> `deploy` must yield identical configuration content to the original files (round-trip idempotency). Running `deploy` multiple times must produce identical results without errors.
+6. **Reversibility, Fidelity & Idempotency (Invariant 6):**
+
+   The `genelatte` -> `deploy` cycle preserves a configuration file at three
+   cumulative levels:
+
+   **6.a — Semantic equivalence (mandatory, all formats).**
+   The regenerated file, re-parsed with its format's native parser, must
+   produce a data model exactly equal to the original: same keys, same key
+   order, same values, same native types. No key may appear, disappear,
+   duplicate, or change type.
+
+   **6.b — Readable structure preservation (mandatory wherever the parser
+   supports it, per Invariant 3).** Comments (block and inline), section
+   order, indentation, and document layout are preserved — a TOML inline
+   table remains an inline table, a YAML flow sequence remains in flow
+   style, a YAML anchor/merge key remains an anchor and is never expanded,
+   a multiline string remains multiline.
+
+   **6.c — Exact fixed point (mandatory, all formats).**
+   `genelatte` may normalize a file's lexical formatting exactly once,
+   within the bounds of 6.a and 6.b. From the first `deploy` onward, every
+   subsequent `genelatte` -> `deploy` cycle is **byte-for-byte identical**:
+   the second deploy and every one after it introduce zero differences.
+   `deploy` run N times always produces the same byte stream — this is
+   what actually protects a user's `git diff` from per-run churn.
+
+   **First-cycle byte-for-byte fidelity** is required only for formats
+   whose adapter operates at the line/text level and can guarantee it:
+
+   | Format | First-cycle `genelatte` -> `deploy` guarantee |
+   | :--- | :--- |
+   | `.env` | **Byte-for-byte**, except the quote style of a value — every value is re-emitted with shell-safe quoting, so it is quoted with `"` when, and only when, it needs to be — and horizontal whitespace before an inline comment. |
+   | INI / `.properties` | **Byte-for-byte**, except horizontal whitespace around separators and inline comments. |
+   | YAML | 6.a + 6.b + 6.c. Byte-for-byte for the large majority of documents; quote-style and flow-sequence spacing normalization is permitted. |
+   | TOML | 6.a + 6.b + 6.c. Scalar lexical representation (radix, thousands separators, exponential notation, quote style — including the choice of multiline delimiter) and internal array spacing normalization is permitted. |
+   | JSON | 6.a + 6.b + 6.c. Non-ASCII escaping, numeric notation and separator spacing normalization is permitted; the separator style of a document that mixes styles between object and array level is unified. |
+
+   Every normalization permitted above must be covered by an explicit test
+   in the fidelity matrix (`tests/unit/adapters/test_fidelity_matrix.py`)
+   documenting the input, the normalized output, and the reason. A
+   round-trip difference not present in that matrix is a bug, not a
+   normalization.
 7. **Git Integration & Secret Hygiene (Invariant 7):**
    Unencrypted `templatte.toml` and concrete runtime configuration files must be automatically tracked in `.gitignore`. Only `*.latte` templates and encrypted envelopes (`templatte.toml.enc`) may be committed to Git. Templatte integrates natively with `git ls-files` to detect and prevent credential leaks.
 

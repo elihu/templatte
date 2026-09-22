@@ -274,8 +274,9 @@ flowchart TD
   | 4 | `templatte press --workspace <ws> --passphrase-file <f>` | `templatte.toml.enc` created; plaintext `templatte.toml` removed; envelope round-trip validated in-process before deletion. |
   | 5 | `templatte pour --workspace <ws> --passphrase-file <f>` | `templatte.toml` restored with byte-identical content to the pre-`press` registry. |
   | 6 | `templatte deploy --workspace <ws>` | Concrete files regenerated again. |
-  | 7 | *(verification)* | Byte-for-byte comparison of each regenerated concrete file against its step-0 snapshot — the definitive proof of round-trip fidelity (Invariant 6), beyond structural equality. |
-  | 8 | `templatte check --workspace <ws> --strict` | Exit code `0`: no drift, no missing keys, no git leakage. |
+  | 7 | *(verification: fidelity)* | For each regenerated concrete file, against its step-0 snapshot: (a) **semantic equivalence** — re-parse both with the format's native parser and compare data models, including key order (Invariant 6.a); (b) **structural preservation** — every comment present in the original is present in the regenerated file, section/table counts match, and no YAML anchor/merge key or TOML inline table has been expanded (Invariant 6.b); (c) **byte-for-byte** for the formats the Invariant 6 table marks as byte-exact (`.env`, INI). Any byte-level difference in the remaining formats must correspond to a normalization listed in `test_fidelity_matrix.py`; an uncatalogued difference fails the test. |
+  | 8 | `templatte genelatte` + `templatte deploy` *(second full round-trip)* | **Byte-for-byte comparison** of each concrete file against its state after step 6 — the definitive proof of the fixed-point property (Invariant 6.c). No difference is permitted here, in any format: this step is what actually protects a user's `git diff` from per-deploy churn. |
+  | 9 | `templatte check --workspace <ws> --strict` | Exit code `0`: no drift, no missing keys, no git leakage. |
 
   Every step targets the same `--workspace <ws>` fixture directory; `press` and `pour` are not exempt from this — a mismatched workspace between steps is itself a bug the matrix is designed to catch.
 
