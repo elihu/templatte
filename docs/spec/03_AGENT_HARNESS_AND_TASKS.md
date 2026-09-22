@@ -284,8 +284,15 @@ flowchart TD
 
 #### `TASK-603`: Continuous Integration Workflow
 * **Target File:** `.github/workflows/ci.yml`
-* **Objective:** Run `uv sync`, `uv run ruff check .`, and `uv run pytest` (unit, integration, and e2e suites) on every push and pull request, across a matrix of Linux, macOS, and Windows runners and the supported Python versions (`3.10`, `3.11`, `3.12`, `3.13`).
-* **Merge Gate:** All matrix jobs green. Merge into `develop`, then fast-forward `develop` into `main` and tag `v0.2.0`.
+* **Objective:** Run `uv sync`, `uv run ruff check .`, and `uv run pytest` (unit, integration, and e2e suites) on every push and pull request, across a matrix of Linux, macOS, and Windows runners and the supported Python versions (`3.10`, `3.11`, `3.12`, `3.13`). Triggered on `pull_request` (never `pull_request_target`), with `permissions: contents: read` declared at the workflow level and every third-party action pinned to a full commit SHA, per `04_GIT_AND_WORKFLOW_SPEC.md` §8.3 — the workflow runs against pull requests from untrusted forks and needs no repository secrets to do its job.
+* **Merge Gate:** All matrix jobs green. Merge into `develop`.
+
+#### `TASK-604`: Community Health & Vulnerability Disclosure Files
+* **Target Files:**
+  * `SECURITY.md` — private vulnerability reporting via GitHub Security Advisories, scoped explicitly to the crypto engine, envelope format, and passphrase handling, per `04_GIT_AND_WORKFLOW_SPEC.md` §8.2.
+  * `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `.github/ISSUE_TEMPLATE/`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/dependabot.yml` — per `04_GIT_AND_WORKFLOW_SPEC.md` §8.1 and §8.3.
+* **Objective:** Ship the governance and supply-chain hygiene files a public repository is expected to carry before its first tagged release.
+* **Merge Gate:** All files present and cross-referenced correctly (TASK-ID convention, branch workflow, CI trigger). Merge into `develop`, then merge `develop` into `main` via an explicit merge commit (§2.1) and tag `v0.2.0`.
 
 ---
 

@@ -12,6 +12,8 @@ Git integration in Templatte exists at two interconnected levels:
 1. **Repository & Contribution Workflow (Meta-level):** The Git branching, rework, and consolidation strategy used by developers and AI agents to evolve the Templatte codebase.
 2. **Software-Level Git Integration (Tool-level):** How the Templatte CLI itself interacts with Git repositories (automatic `.gitignore` management, pre-commit hooks, tracking verification, and secret leak prevention).
 
+The Templatte repository itself is hosted as a **public** GitHub repository (`github.com/elihu/templatte`), openly licensed under Apache-2.0. Every design decision in this document — branch protection, CI trust boundaries, and the community-facing governance files in §8 — assumes an adversarial, unauthenticated audience: anyone can fork the repository, open a pull request, or read the full commit history, so nothing in the workflow may depend on the repository's contents or history staying private.
+
 ---
 
 ## 2. Repository Branching & Consolidation Strategy
@@ -109,7 +111,7 @@ Every change must be isolated on its own branch branched from `develop` and cons
 7. **Branch 6:** `feat/06-cli-presentation`
    * Scope: Typer CLI layer, Rich barista console formatters, `--json` output handler, exit codes.
 8. **Branch 7:** `feat/07-precommit-and-e2e`
-   * Scope: Pre-commit hook configuration, end-to-end integration tests, final verification.
+   * Scope: Pre-commit hook configuration, end-to-end integration tests, CI workflow, community health and vulnerability-disclosure files (§8), final verification.
 
 ---
 
@@ -246,3 +248,46 @@ Because `templatte.toml.enc` is designed to be committed, every `press` that cha
 1. **Version bump:** `pyproject.toml`'s `[project].version` is the single source of truth for the package version; it is never duplicated into another file that could drift out of sync.
 2. **Tagging:** After `develop` is merged into `main` (§2.1), an annotated tag `vX.Y.Z` is created on the resulting `main` commit.
 3. **Downstream consumption:** That tag is the `rev:` value third-party repositories pin in their own `.pre-commit-config.yaml` (§3.4) when adopting the Templatte pre-commit hook — an annotated tag on `main` gives downstream consumers a stable, signed-off reference point rather than a moving branch.
+
+---
+
+## 8. Public Repository Governance & Security Posture
+
+Because the repository is public, the workflow around it must assume every pull request, issue, and Actions run may originate from an untrusted third party, not just from the maintainer or a delegated agent.
+
+### 8.1 Community Health Files
+
+A public open-source repository is expected to ship a standard set of governance files at its root, all authored in Branch 7 alongside the CI workflow (`03_AGENT_HARNESS_AND_TASKS.md` TASK-604):
+
+* **`CONTRIBUTING.md`** — documents the branch-by-branch workflow (§2), the Conventional Commits + `TASK-ID` convention (§4), and how an external contributor proposes a change outside the agent-driven roadmap (fork, `fix/*` branch, PR against `develop`).
+* **`CODE_OF_CONDUCT.md`** — the Contributor Covenant, so participation expectations are explicit before the project accepts outside contributions.
+* **`.github/ISSUE_TEMPLATE/`** — separate templates for bug reports and feature requests; the bug template explicitly instructs reporters not to paste secrets, encrypted registries, or workspace paths that could reveal sensitive project structure.
+* **`.github/PULL_REQUEST_TEMPLATE.md`** — prompts the author for the `TASK-ID` (if any), the verification command output, and a checklist confirming no `templatte.toml`, `.env`, or other concrete configuration file was accidentally staged.
+
+### 8.2 Vulnerability Disclosure (`SECURITY.md`)
+
+Templatte's core value proposition is a cryptographic engine (`02_ARCHITECTURE_AND_EXTENSIBILITY.md` §4.1) protecting values that are, by design, committed to a public repository. A flaw in that engine is not an ordinary bug: filing it as a public GitHub issue would disclose the exploit to every fork and clone simultaneously, including any that hold real encrypted registries. `SECURITY.md` therefore specifies:
+
+1. **Private reporting channel:** GitHub's private vulnerability reporting (Security Advisories), not the public issue tracker, is the only channel for anything affecting `AesGcmCryptoEngine`, the envelope format, or passphrase handling.
+2. **Scope:** what counts as a security issue (envelope forgery, passphrase brute-force feasibility below the documented KDF cost, plaintext leakage through `grind`/`press`/`pour`, `.gitignore` management failing to cover a templatized file) versus an ordinary bug report.
+3. **Response commitment:** an explicit acknowledgment window and a policy of coordinated disclosure — a fix is released and tagged before the advisory is made public, giving downstream users a chance to upgrade first.
+
+### 8.3 GitHub Actions Trust Boundary
+
+The CI workflow (§5) runs on every pull request, including ones opened from forks by contributors with no write access to the repository. `.github/workflows/ci.yml` (`03_AGENT_HARNESS_AND_TASKS.md` TASK-603) is specified with this boundary in mind:
+
+1. **Trigger:** `pull_request`, never `pull_request_target` — the former runs against the PR's own code with a read-only, repository-scoped token and no access to repository secrets; the latter runs with the base repository's permissions and secrets against untrusted PR code, which is the standard vector for a fork to exfiltrate secrets or push malicious changes through CI. Templatte's CI needs no secrets at all (it only runs `uv sync`, `ruff check`, and `pytest` against public dependencies), which removes the incentive to ever reach for `pull_request_target`.
+2. **Least-privilege token:** the workflow declares `permissions: contents: read` at the top level (overriding the org/repo default, which may be broader), since the workflow never needs to write to the repository, open PRs, or manage releases itself.
+3. **Pinned third-party actions:** every non-`actions/*` step (e.g. `astral-sh/setup-uv`) is pinned to a full commit SHA rather than a floating tag (`@v3`) or branch, closing the supply-chain risk of an upstream action being retagged to point at malicious code after Templatte's workflow already trusts it.
+4. **Dependency and Actions hygiene:** `.github/dependabot.yml` is configured for both the `pip`/`uv` ecosystem (keeping `uv.lock` current) and the `github-actions` ecosystem (keeping pinned SHAs current against known-good releases) — a public repository is a standing target, so stale dependencies and stale Actions pins are treated as a continuous risk, not a one-time setup step.
+
+### 8.4 Branch Protection Rules
+
+Concretely, on top of the roles already defined in §2.1, both `main` and `develop` are configured on GitHub with:
+
+1. Require a pull request before merging — direct pushes are rejected even for repository administrators.
+2. Require the CI workflow (§5) to pass and the branch to be up to date with its base before merging.
+3. Require at least one approving review before a pull request from an external contributor (i.e. not the maintainer or a delegated agent acting on the maintainer's branch) can merge.
+4. Disallow force-pushes and branch deletion on `main` and `develop`.
+
+These rules are what make "Strictly Protected" in §2.1's table an enforced GitHub setting rather than a documentation-only convention.
