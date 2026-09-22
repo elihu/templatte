@@ -19,7 +19,7 @@ Templatte 2.0 is structured into decoupled layers, separating presentation (CLI)
 ┌──────────────────────────────▼──────────────────────────────┐
 │                    Application Services                     │
 │  GenelatteService │ DeployService │ GrindService            │
-│  CryptoService    │ CheckService  │ DiffService             │
+│  CryptoService    │ CheckService (incl. drift detection)    │
 └──────────────┬──────────────────────────────┬───────────────┘
                │ operates on                  │ interacts with
 ┌──────────────▼──────────────┐┌──────────────▼───────────────┐
@@ -54,7 +54,8 @@ templatte/
 │   │   ├── grind.py
 │   │   ├── press.py
 │   │   ├── pour.py
-│   │   └── check.py
+│   │   ├── check.py
+│   │   └── migrate.py
 │   ├── console.py              # Rich theme, barista banners & formatters
 │   └── output.py               # JSON vs Text response handler
 ├── core/                       # Domain & Application Logic
@@ -73,7 +74,7 @@ templatte/
 │   ├── __init__.py
 │   ├── base.py                 # FormatAdapter base protocol
 │   ├── toml_adapter.py         # TOML parsing & comment-preserving rendering
-│   ├── yaml_adapter.py         # YAML adapter (ruamel.yaml or PyYAML)
+│   ├── yaml_adapter.py         # YAML adapter (ruamel.yaml, round-trip mode)
 │   ├── json_adapter.py         # JSON adapter
 │   ├── ini_adapter.py          # INI / Properties adapter
 │   ├── env_adapter.py          # .env key-value adapter
@@ -117,28 +118,34 @@ class FormatAdapter(Protocol):
 
     def render(self, template_content: str, values: dict[str, Any]) -> str:
         """
-        Renders template content by replacing placeholders with typed values,
-        preserving formatting and comments.
+        Renders template content by locating each quoted placeholder token
+        and replacing it with its typed value, serialized per the destination
+        format's own conventions (see `00_MASTER_SPEC.md` §5, "Type
+        Representation Across Formats"), preserving surrounding formatting
+        and comments.
         """
         ...
 ```
 
 ### 3.1 Format Adapter Registry
-A centralized `AdapterRegistry` dispatches files to the appropriate adapter:
+Templatte ships with exactly five formats known at build time, so dispatch is a plain static mapping rather than a runtime registration ceremony:
 ```python
-class AdapterRegistry:
-    def __init__(self):
-        self._adapters: list[FormatAdapter] = []
+ADAPTERS: dict[str, type[FormatAdapter]] = {
+    "toml": TomlAdapter,
+    "yaml": YamlAdapter,
+    "json": JsonAdapter,
+    "ini": IniAdapter,
+    "env": EnvAdapter,
+}
 
-    def register(self, adapter: FormatAdapter) -> None:
-        self._adapters.append(adapter)
-
-    def get_adapter_for_file(self, path: Path) -> FormatAdapter:
-        for adapter in self._adapters:
-            if adapter.can_handle(path):
-                return adapter
-        raise UnsupportedFormatError(f"No adapter found for file {path}")
+def get_adapter_for_file(path: Path) -> FormatAdapter:
+    for adapter_cls in ADAPTERS.values():
+        adapter = adapter_cls()
+        if adapter.can_handle(path):
+            return adapter
+    raise UnsupportedFormatError(f"No adapter found for file {path}")
 ```
+Third-party formats are out of scope for this version — `ADAPTERS` is the single source of truth for dispatch, and adding a format means adding an entry here alongside its adapter module.
 
 ---
 
@@ -146,6 +153,8 @@ class AdapterRegistry:
 
 ### 4.1 Native Cross-Platform Cryptography
 Instead of depending on an external `gpg` binary, Templatte utilizes Python's standard `cryptography` library (`hazmat.primitives.ciphers.aead.AESGCM`).
+
+The AAD (additional authenticated data) parameter of AES-GCM is never left empty: the canonicalized envelope header — `version`, `algorithm`, and the `kdf` parameters, serialized deterministically — is passed as AAD to both `encrypt` and `decrypt`. This authenticates the metadata describing how to decrypt the file together with the ciphertext itself, so an attacker cannot swap in a different KDF iteration count or algorithm tag against the same ciphertext without the tampering being detected as an authentication failure.
 
 ```python
 import os
@@ -160,6 +169,11 @@ class AesGcmCryptoEngine:
     KEY_BYTES = 32  # 256 bits
     ITERATIONS = 600_000
 
+    def _canonical_aad(self, algorithm: str, kdf_name: str, kdf_hash: str, iterations: int, salt: bytes) -> bytes:
+        # Deterministic, order-stable encoding of the header fields that must
+        # be authenticated alongside the ciphertext.
+        return f"{algorithm}|{kdf_name}|{kdf_hash}|{iterations}|{base64.b64encode(salt).decode('ascii')}".encode("utf-8")
+
     def encrypt(self, plaintext: bytes, passphrase: str) -> dict:
         salt = os.urandom(self.SALT_BYTES)
         kdf = PBKDF2HMAC(
@@ -169,10 +183,11 @@ class AesGcmCryptoEngine:
             iterations=self.ITERATIONS,
         )
         key = kdf.derive(passphrase.encode("utf-8"))
-        
+
+        aad = self._canonical_aad("AES-256-GCM", "PBKDF2HMAC", "SHA256", self.ITERATIONS, salt)
         nonce = os.urandom(self.NONCE_BYTES)
         aesgcm = AESGCM(key)
-        ciphertext_and_tag = aesgcm.encrypt(nonce, plaintext, None)
+        ciphertext_and_tag = aesgcm.encrypt(nonce, plaintext, aad)
         
         # In AESGCM, the 16-byte authentication tag is appended to the ciphertext
         tag = ciphertext_and_tag[-16:]
@@ -202,14 +217,17 @@ class AesGcmCryptoEngine:
             iterations=iterations,
         )
         key = kdf.derive(passphrase.encode("utf-8"))
-        
+
+        aad = self._canonical_aad(
+            envelope["algorithm"], envelope["kdf"]["name"], envelope["kdf"]["hash"], iterations, salt
+        )
         nonce = base64.b64decode(envelope["iv"])
         ciphertext = base64.b64decode(envelope["ciphertext"])
         tag = base64.b64decode(envelope["tag"])
         
         aesgcm = AESGCM(key)
         # Recombine ciphertext and tag for verification
-        return aesgcm.decrypt(nonce, ciphertext + tag, None)
+        return aesgcm.decrypt(nonce, ciphertext + tag, aad)
 ```
 
 ---
@@ -224,6 +242,7 @@ To prevent data corruption during crashes or aborted runs:
    * Relative paths are validated to ensure they do not traverse outside the workspace root (`path.resolve().is_relative_to(workspace_root)`).
 3. **Workspace Ignore Filtering:**
    * Files matching `.gitignore` or standard excludes (`.git`, `.venv`, `node_modules`, `dist`, `__pycache__`) are skipped automatically.
+   * `.gitignore` semantics (negation with `!`, anchoring with a leading `/`, recursive globs with `**`) are evaluated using the `pathspec` library rather than a hand-rolled matcher — `.gitignore` pattern syntax has enough edge cases (negation ordering, directory-only patterns, escaping) that a purpose-built, well-tested library is the correct dependency to take rather than reimplementing it.
 
 ---
 
@@ -239,7 +258,8 @@ Templatte 2.0 standardizes exclusively on **`uv`** as its fast, deterministic pa
   * `rich>=13.7.1`: Modern terminal output, tables, status spinners, and syntax highlighting.
   * `cryptography>=42.0.0`: Authenticated AES-256-GCM cipher without external binary requirements.
   * `tomlkit>=0.13.2`: Comment-preserving, structure-preserving TOML parser and serializer.
-  * `pyyaml>=6.0.2`: Standard YAML serialization.
+  * `ruamel.yaml>=0.18.6`: Round-trip YAML parser and serializer — chosen specifically because it preserves comments, key ordering, and formatting on load-modify-dump cycles, which plain `PyYAML` discards by design.
+  * `pathspec>=0.12.1`: `.gitignore`-compatible pattern matching for workspace discovery and ignore evaluation.
   * `pydantic>=2.6.0`: Strict data validation and schema serialization.
 * **Development & Quality Tools:**
   * `pytest>=8.0.0`, `pytest-cov>=4.1.0`
@@ -249,5 +269,6 @@ Templatte 2.0 standardizes exclusively on **`uv`** as its fast, deterministic pa
 The utility module `templatte.utils.git` encapsulates repository interaction:
 * `is_git_repo(path: Path) -> bool`
 * `get_tracked_files(workspace: Path) -> set[str]`: queries `git ls-files` without shell injection risk.
+* `has_uncommitted_changes(path: Path) -> bool`: diffs a tracked file's working-tree content against `HEAD`, backing `grind`'s `--force-tracked` guard.
 * `ensure_gitignored(workspace: Path, patterns: list[str]) -> bool`: parses and safely updates `.gitignore`.
 
