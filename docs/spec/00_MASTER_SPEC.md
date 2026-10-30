@@ -1,7 +1,7 @@
 # Templatte 2.0: Master Specification
 
 **Status:** Approved for Implementation  
-**Target Version:** `templatte 0.2.0`  
+**Target Version:** `templatte 1.0.0`  
 **Paradigm:** Spec-Driven Development (SDD) for AI Agents & Human Developers  
 **Author:** Templatte Core Architecture Group  
 
