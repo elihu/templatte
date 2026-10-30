@@ -77,7 +77,7 @@ class EnvAdapter:
                 extracted[key] = self._parse_scalar(val_str)
                 placeholder = f"{open_tag} {key} {close_tag}"
                 comment_part = f" {comment}" if comment else ""
-                end_chars = line[len(raw_line):]
+                end_chars = line[len(raw_line) :]
                 template_lines.append(f"{indent}{key}{delim}{placeholder}{comment_part}{end_chars}")
             else:
                 template_lines.append(line)
@@ -108,8 +108,10 @@ class EnvAdapter:
                         formatted = self._format_value(values[key_name])
                         new_val_str = pattern.sub(formatted, val_str)
                         comment_part = f" {comment}" if comment else ""
-                        end_chars = line[len(raw_line):]
-                        output_lines.append(f"{indent}{key}{delim}{new_val_str}{comment_part}{end_chars}")
+                        end_chars = line[len(raw_line) :]
+                        output_lines.append(
+                            f"{indent}{key}{delim}{new_val_str}{comment_part}{end_chars}"
+                        )
                     else:
                         missing_keys.append(key_name)
                         output_lines.append(line)

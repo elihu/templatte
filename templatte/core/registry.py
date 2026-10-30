@@ -38,7 +38,9 @@ class RegistryManager:
         if not p.is_absolute():
             p = self.workspace_root / p
         content = p.read_text(encoding="utf-8")
-        return self.parse_document(content, source_path=normalize_workspace_path(p, self.workspace_root))
+        return self.parse_document(
+            content, source_path=normalize_workspace_path(p, self.workspace_root)
+        )
 
     def load(self, path: Path | str) -> ValuesRegistry:
         """Load templatte.toml into a validated ValuesRegistry Pydantic model."""
@@ -51,9 +53,7 @@ class RegistryManager:
         default_profile = str(doc.get("default_profile", "default"))
 
         ws_data = doc.get("workspace", {})
-        workspace_cfg = WorkspaceConfig(
-            ignored_patterns=list(ws_data.get("ignored_patterns", []))
-        )
+        workspace_cfg = WorkspaceConfig(ignored_patterns=list(ws_data.get("ignored_patterns", [])))
 
         tpl_data = doc.get("template", {})
         template_cfg = TemplateConfig(

@@ -357,14 +357,7 @@ def test_yaml_merge_key_survives_round_trip() -> None:
     anchor's own definition.
     """
     adapter = YamlAdapter()
-    source = (
-        "defaults: &defaults\n"
-        "  timeout: 30\n"
-        "\n"
-        "service:\n"
-        "  <<: *defaults\n"
-        "  name: api\n"
-    )
+    source = "defaults: &defaults\n  timeout: 30\n\nservice:\n  <<: *defaults\n  name: api\n"
 
     values, _ = adapter.extract_values(source)
     rendered = _cycle(adapter, source)
@@ -624,9 +617,7 @@ class TestInvariant6cFixedPoint:
     """
 
     @pytest.mark.parametrize(("adapter_cls", "source"), FIXED_POINT_CASES)
-    def test_second_cycle_is_byte_for_byte_identical(
-        self, adapter_cls: type, source: str
-    ) -> None:
+    def test_second_cycle_is_byte_for_byte_identical(self, adapter_cls: type, source: str) -> None:
         adapter = adapter_cls()
 
         extracted1, template1 = adapter.extract_values(source)
@@ -654,9 +645,7 @@ class TestInvariant6cFixedPoint:
             assert stable == current
 
     @pytest.mark.parametrize(("adapter_cls", "source"), FIXED_POINT_CASES)
-    def test_first_cycle_preserves_registry_values(
-        self, adapter_cls: type, source: str
-    ) -> None:
+    def test_first_cycle_preserves_registry_values(self, adapter_cls: type, source: str) -> None:
         """Invariant 6.a: the normalization of cycle one changes bytes, never
         the data model -- the registry extracted from the deployed file equals
         the one extracted from the original.

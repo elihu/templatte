@@ -185,13 +185,7 @@ def test_yaml_nested_scalar_list_is_single_registry_value() -> None:
 
 def test_yaml_list_of_mappings_is_indexed() -> None:
     adapter = YamlAdapter()
-    source = (
-        "servers:\n"
-        "  - ip: 10.0.0.1\n"
-        "    role: frontend\n"
-        "  - ip: 10.0.0.2\n"
-        "    role: backend\n"
-    )
+    source = "servers:\n  - ip: 10.0.0.1\n    role: frontend\n  - ip: 10.0.0.2\n    role: backend\n"
 
     values, template = adapter.extract_values(source)
 

@@ -129,9 +129,7 @@ class TomlAdapter:
                             if key_name in values:
                                 raw_val = values[key_name]
                                 if isinstance(raw_val, str):
-                                    new_item = _toml_string_item(
-                                        raw_val, _is_multiline_string(v)
-                                    )
+                                    new_item = _toml_string_item(raw_val, _is_multiline_string(v))
                                 else:
                                     new_item = tomlkit.item(raw_val)
                                 if hasattr(v, "trivia"):

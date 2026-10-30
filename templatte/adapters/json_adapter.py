@@ -25,9 +25,7 @@ class JsonAdapter:
         name = name.removesuffix(".latte")
         return name.endswith(self.supported_extensions)
 
-    def _detect_formatting(
-        self, content: str
-    ) -> tuple[int | str | None, tuple[str, str], bool]:
+    def _detect_formatting(self, content: str) -> tuple[int | str | None, tuple[str, str], bool]:
         """Detect indentation, item/key separators, and trailing-newline presence
         from a JSON string, to reproduce them when re-serializing.
 

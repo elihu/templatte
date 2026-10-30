@@ -52,7 +52,10 @@ format = "toml"
 
     # Profile override
     assert "prod" in registry.profiles
-    assert registry.get_effective_values("config/app.toml", profile="prod")["server.host"] == "api.internal"
+    assert (
+        registry.get_effective_values("config/app.toml", profile="prod")["server.host"]
+        == "api.internal"
+    )
 
 
 def test_detect_legacy_registry_raises_error(tmp_path: Path) -> None:
@@ -81,13 +84,7 @@ def test_save_and_roundtrip_registry(tmp_path: Path) -> None:
                 secrets={"db.password": True},
             )
         },
-        profiles={
-            "staging": {
-                "app.yaml": ProfileFileEntry(
-                    values={"db.host": "staging.db"}
-                )
-            }
-        },
+        profiles={"staging": {"app.yaml": ProfileFileEntry(values={"db.host": "staging.db"})}},
     )
 
     reg_path = tmp_path / "templatte.toml"
