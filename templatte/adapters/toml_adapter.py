@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import tomlkit
-from tomlkit.container import Container
+from tomlkit.container import Container, OutOfOrderTableProxy
 from tomlkit.items import AoT, InlineTable, Table
 
 from templatte.core.exceptions import ConfigSyntaxError, MissingValuesError
@@ -18,7 +18,15 @@ from templatte.core.exceptions import ConfigSyntaxError, MissingValuesError
 # ``tomlkit.item(dict)`` on render, which emits a ``[section]`` block and
 # breaks Invariant 6.b (readable structure preservation). Mutating the
 # ``InlineTable`` in place keeps it inline.
-_MAPPING_TYPES = (Container, Table, InlineTable)
+#
+# ``OutOfOrderTableProxy`` is what tomlkit returns for a table whose parts are
+# not contiguous: sibling dotted keys sharing a prefix (``server.host`` and
+# ``server.port``) or a table split around another one (``[db]`` ... ``[x]``
+# ... ``[db.sub]``). It is a ``dict`` subclass, not a ``Container``; treated as
+# a leaf, the whole table collapsed into one placeholder and was re-emitted as
+# a ``[section]`` block, breaking Invariant 6.b. Mutating it in place writes
+# through to the underlying tables.
+_MAPPING_TYPES = (Container, Table, InlineTable, OutOfOrderTableProxy)
 
 # Opening delimiters of the two multiline TOML string forms.
 _MULTILINE_DELIMITERS = ('"""', "'''")

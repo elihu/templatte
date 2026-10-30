@@ -94,3 +94,20 @@ def test_toml_inline_table_stays_inline() -> None:
 
     assert rendered == source
     assert "[pt]" not in rendered
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        # Sibling dotted keys sharing a prefix.
+        '# app\nserver.host = "0.0.0.0" # bind\nserver.port = 8080\nname = "x"\n',
+        # A table split around another table.
+        '[db]\nurl = "u"\n\n[cache]\nttl = 5\n\n[db.pool]\nsize = 2\n',
+    ],
+)
+def test_out_of_order_tables_round_trip_byte_for_byte(source: str) -> None:
+    adapter = TomlAdapter()
+    values, template = adapter.extract_values(source)
+    assert all("." in k or k in {"name"} for k in values)
+    assert not any(isinstance(v, dict) for v in values.values())
+    assert adapter.render(template, values) == source

@@ -16,22 +16,20 @@ LEGACY = """\
 "./config/app.toml_db.user_name" = "bob"
 "./config/app.toml_auth.password" = "hunter2"
 "./config/app.toml_server.port" = 8080
+"./config/app.toml_server.host" = "0.0.0.0"
 "./config/app.toml_extra.toml_x" = 1
 "./svc_a/b_c.toml_name" = "svc"
 """
 
-# NOTE: each dotted prefix has a single child. tomlkit models sibling dotted keys as an
-# OutOfOrderTableProxy, which the TOML adapter does not traverse yet (reported, out of scope).
 APP_LATTE = (
     "# app\n"
     "title = {{title}}\n"
     "server.port = {{{server.port}}}\n"
+    "server.host = {{server.host}}\n"
     "db.user_name = {{ db.user_name }}\n"
     'auth.password = "{{ auth.password }}"\n'
 )
-APP_CONCRETE = (
-    '# app\ntitle = "demo"\nserver.port = 8080\ndb.user_name = "bob"\nauth.password = "hunter2"\n'
-)
+APP_CONCRETE = '# app\ntitle = "demo"\nserver.port = 8080\nserver.host = "0.0.0.0"\ndb.user_name = "bob"\nauth.password = "hunter2"\n'
 
 
 @pytest.fixture
@@ -63,6 +61,7 @@ def test_longest_prefix_attribution(legacy_ws: Path) -> None:
         "db.user_name": "bob",
         "auth.password": "hunter2",
         "server.port": 8080,
+        "server.host": "0.0.0.0",
     }
     assert reg.files["svc_a/b_c.toml"].values == {"name": "svc"}
     assert reg.version == 1 and reg.default_profile == "default"
@@ -78,6 +77,7 @@ def test_template_rewrite_only_unquoted(legacy_ws: Path) -> None:
         "# app\n"
         'title = "{{ title }}"\n'
         'server.port = "{{ server.port }}"\n'
+        'server.host = "{{ server.host }}"\n'
         'db.user_name = "{{ db.user_name }}"\n'
         'auth.password = "{{ auth.password }}"\n'
     )
