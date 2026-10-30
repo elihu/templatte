@@ -54,8 +54,10 @@ def test_multiformat_generation(ws: Path) -> None:
     assert reg.files["config/svc.yaml"].secrets == {"api_key": True}
     assert reg.files["config/data.json"].secrets == {"token": True}
     assert reg.files[".env"].secrets == {"SECRET_VALUE": True}
-    assert "{{ server.port }}" in (ws / "config/app.toml.latte").read_text()
-    assert (ws / "config/app.toml").read_text().count("hunter2") == 1  # concrete untouched
+    assert "{{ server.port }}" in (ws / "config/app.toml.latte").read_text(encoding="utf-8")
+    assert (ws / "config/app.toml").read_text(encoding="utf-8").count(
+        "hunter2"
+    ) == 1  # concrete untouched
 
 
 def test_dry_run_writes_nothing(ws: Path) -> None:
@@ -67,20 +69,20 @@ def test_dry_run_writes_nothing(ws: Path) -> None:
 
 def test_existing_latte_skip_vs_force(ws: Path) -> None:
     generate(ws)
-    (ws / "config/app.toml.latte").write_text("custom\n")
+    (ws / "config/app.toml.latte").write_text("custom\n", encoding="utf-8", newline="\n")
     r = generate(ws)
     assert r.templates_created == ()
     assert "config/app.toml.latte" in r.skipped_existing
-    assert (ws / "config/app.toml.latte").read_text() == "custom\n"
+    assert (ws / "config/app.toml.latte").read_text(encoding="utf-8") == "custom\n"
     r = generate(ws, force=True)
     assert "config/app.toml.latte" in r.templates_created
-    assert "custom" not in (ws / "config/app.toml.latte").read_text()
+    assert "custom" not in (ws / "config/app.toml.latte").read_text(encoding="utf-8")
 
 
 def test_merge_rule(ws: Path) -> None:
     generate(ws)
     path = ws / "templatte.toml"
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     text = "# my comment\n" + text
     text += '\n[profiles.prod."config/app.toml".values]\n"server.port" = 443\n'
     # Hand-flag a non-credential key as secret and add a stale one.
@@ -88,16 +90,18 @@ def test_merge_rule(ws: Path) -> None:
         '[files."config/app.toml".secrets]',
         '[files."config/app.toml".secrets]\n"server.host" = true\n"gone.key" = true',
     )
-    path.write_text(text)
+    path.write_text(text, encoding="utf-8", newline="\n")
 
     # Change the concrete file: new value, a removed key, a new key.
     (ws / "config/app.toml").write_text(
-        '[server]\nhost = "1.2.3.4"\n\n[db]\npassword = "new"\napi_token = "x"\n'
+        '[server]\nhost = "1.2.3.4"\n\n[db]\npassword = "new"\napi_token = "x"\n',
+        encoding="utf-8",
+        newline="\n",
     )
     r = generate(ws, force=True)
     assert "config/app.toml.latte" in r.templates_created
 
-    out = path.read_text()
+    out = path.read_text(encoding="utf-8")
     assert out.startswith("# my comment\n")
     reg = load(ws)
     entry = reg.files["config/app.toml"]
@@ -112,9 +116,9 @@ def test_merge_rule(ws: Path) -> None:
 def test_unprocessed_entries_preserved(ws: Path) -> None:
     generate(ws)
     (ws / "extra").mkdir()
-    (ws / "extra" / "x.toml").write_text("a = 1\n")
+    (ws / "extra" / "x.toml").write_text("a = 1\n", encoding="utf-8", newline="\n")
     # Non-forced rerun with include of a new file only processes the new file.
-    (ws / "config/svc.yaml").write_text("name: changed\n")
+    (ws / "config/svc.yaml").write_text("name: changed\n", encoding="utf-8", newline="\n")
     r = generate(ws, include=["extra/x.toml"])
     assert r.templates_created == ("extra/x.toml.latte",)
     reg = load(ws)
@@ -133,9 +137,9 @@ def test_idempotent_byte_identical(ws: Path) -> None:
 
 
 def test_gitignore_block_contents(ws: Path) -> None:
-    (ws / ".gitignore").write_text("*.pyc\n")
+    (ws / ".gitignore").write_text("*.pyc\n", encoding="utf-8", newline="\n")
     generate(ws)
-    text = (ws / ".gitignore").read_text()
+    text = (ws / ".gitignore").read_text(encoding="utf-8")
     assert text.startswith("*.pyc\n\n" + BLOCK_START)
     block = text.split(BLOCK_START)[1].split(BLOCK_END)[0].splitlines()
     entries = [ln for ln in block if ln and not ln.startswith("#")]
@@ -172,7 +176,7 @@ def test_gitignore_covers_all_latte_not_only_this_run(ws: Path) -> None:
     generate(ws)
     write_files(ws, {"extra/y.toml": "a = 1\n"})
     generate(ws, include=["extra/y.toml"])
-    text = (ws / ".gitignore").read_text()
+    text = (ws / ".gitignore").read_text(encoding="utf-8")
     assert "extra/y.toml" in text and "config/app.toml" in text
 
 
@@ -180,7 +184,7 @@ def test_gitignore_stale_entry_removed(ws: Path) -> None:
     generate(ws)
     (ws / "settings.ini.latte").unlink()
     generate(ws, exclude=["settings.ini"])
-    assert "settings.ini" not in (ws / ".gitignore").read_text().splitlines()
+    assert "settings.ini" not in (ws / ".gitignore").read_text(encoding="utf-8").splitlines()
 
 
 def test_update_gitignore_false(ws: Path) -> None:
@@ -192,7 +196,7 @@ def test_update_gitignore_false(ws: Path) -> None:
 def test_nondefault_config_file_ignored(ws: Path) -> None:
     generate(ws, config_file=Path("conf/reg.toml"))
     assert (ws / "conf/reg.toml").is_file()
-    assert "conf/reg.toml" in (ws / ".gitignore").read_text().splitlines()
+    assert "conf/reg.toml" in (ws / ".gitignore").read_text(encoding="utf-8").splitlines()
     # the registry itself is never templatized
     assert "conf/reg.toml.latte" not in {p.relative_to(ws).as_posix() for p in ws.rglob("*.latte")}
 
@@ -211,17 +215,19 @@ def test_manual_review(ws: Path) -> None:
 def test_registry_ignored_patterns_and_delimiters(ws: Path) -> None:
     (ws / "templatte.toml").write_text(
         'version = 1\n[workspace]\nignored_patterns = ["config/data.json"]\n'
-        '[template]\nopen = "<%"\nclose = "%>"\n'
+        '[template]\nopen = "<%"\nclose = "%>"\n',
+        encoding="utf-8",
+        newline="\n",
     )
     write_files(ws, {"config/helm.ini": "[a]\nname = {{ v }}\n"})
     r = generate(ws)
     assert "config/data.json.latte" not in r.templates_created
     assert "config/helm.ini.latte" in r.templates_created  # {{ }} no longer foreign
-    assert "<% server.port %>" in (ws / "config/app.toml.latte").read_text()
+    assert "<% server.port %>" in (ws / "config/app.toml.latte").read_text(encoding="utf-8")
 
 
 def test_legacy_registry_propagates(ws: Path) -> None:
-    (ws / "templatte.toml").write_text('"./a_b" = "c"\n')
+    (ws / "templatte.toml").write_text('"./a_b" = "c"\n', encoding="utf-8", newline="\n")
     with pytest.raises(LegacyRegistryError):
         generate(ws)
 

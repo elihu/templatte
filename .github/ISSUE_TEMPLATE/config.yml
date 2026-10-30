@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability (private)
+    url: https://github.com/elihu/templatte/security/advisories/new
+    about: Crypto, envelope, passphrase or .gitignore-coverage issues must be reported privately. See SECURITY.md.

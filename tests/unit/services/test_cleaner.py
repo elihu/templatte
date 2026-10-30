@@ -83,12 +83,12 @@ def test_backup(generated: Path) -> None:
     r = grind(generated, force=True, backup=True)
     assert len(r.backups) == 5
     bak = generated / "settings.ini.20260101T000000.bak"
-    assert bak.read_text() == SAMPLE_FILES["settings.ini"]
+    assert bak.read_text(encoding="utf-8") == SAMPLE_FILES["settings.ini"]
     assert not (generated / "settings.ini").exists()
 
 
 def test_legacy_registry_refused(generated: Path) -> None:
-    (generated / "templatte.toml").write_text('"./a_b" = 1\n')
+    (generated / "templatte.toml").write_text('"./a_b" = 1\n', encoding="utf-8", newline="\n")
     with pytest.raises(LegacyRegistryError):
         grind(generated, force=True)
 
@@ -107,7 +107,9 @@ class TestTracked:
         assert "config/app.toml" in r.deleted and r.skipped_tracked == ()
 
     def test_modified_tracked_skipped(self, repo: Path) -> None:
-        (repo / "config/app.toml").write_text("[server]\nhost = 'x'\n")
+        (repo / "config/app.toml").write_text(
+            "[server]\nhost = 'x'\n", encoding="utf-8", newline="\n"
+        )
         r = grind(repo, force=True)
         assert r.skipped_tracked == ("config/app.toml",)
         assert (repo / "config/app.toml").exists()
@@ -115,13 +117,17 @@ class TestTracked:
         assert "settings.ini" in r.deleted
 
     def test_dry_run_reports_skipped(self, repo: Path) -> None:
-        (repo / "config/app.toml").write_text("[server]\nhost = 'x'\n")
+        (repo / "config/app.toml").write_text(
+            "[server]\nhost = 'x'\n", encoding="utf-8", newline="\n"
+        )
         r = grind(repo, dry_run=True)
         assert r.skipped_tracked == ("config/app.toml",)
 
     def test_force_tracked(self, repo: Path) -> None:
-        (repo / "config/app.toml").write_text("[server]\nhost = 'x'\n")
+        (repo / "config/app.toml").write_text(
+            "[server]\nhost = 'x'\n", encoding="utf-8", newline="\n"
+        )
         r = grind(repo, force=True, force_tracked=True, backup=True)
         assert "config/app.toml" in r.deleted and r.skipped_tracked == ()
         bak = repo / "config/app.toml.20260101T000000.bak"
-        assert bak.read_text() == "[server]\nhost = 'x'\n"
+        assert bak.read_text(encoding="utf-8") == "[server]\nhost = 'x'\n"

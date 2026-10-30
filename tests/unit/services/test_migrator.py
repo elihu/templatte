@@ -34,12 +34,16 @@ APP_CONCRETE = '# app\ntitle = "demo"\nserver.port = 8080\nserver.host = "0.0.0.
 
 @pytest.fixture
 def legacy_ws(tmp_path: Path) -> Path:
-    (tmp_path / "templatte.toml").write_text(LEGACY)
+    (tmp_path / "templatte.toml").write_text(LEGACY, encoding="utf-8", newline="\n")
     (tmp_path / "config").mkdir()
-    (tmp_path / "config/app.toml.latte").write_text(APP_LATTE)
-    (tmp_path / "config/app.toml_extra.toml.latte").write_text("x = {{x}}\n")
+    (tmp_path / "config/app.toml.latte").write_text(APP_LATTE, encoding="utf-8", newline="\n")
+    (tmp_path / "config/app.toml_extra.toml.latte").write_text(
+        "x = {{x}}\n", encoding="utf-8", newline="\n"
+    )
     (tmp_path / "svc_a").mkdir()
-    (tmp_path / "svc_a/b_c.toml.latte").write_text("name = {{name}}\n")
+    (tmp_path / "svc_a/b_c.toml.latte").write_text(
+        "name = {{name}}\n", encoding="utf-8", newline="\n"
+    )
     return tmp_path
 
 
@@ -72,7 +76,7 @@ def test_longest_prefix_attribution(legacy_ws: Path) -> None:
 
 def test_template_rewrite_only_unquoted(legacy_ws: Path) -> None:
     migrate(legacy_ws, force=True)
-    text = (legacy_ws / "config/app.toml.latte").read_text()
+    text = (legacy_ws / "config/app.toml.latte").read_text(encoding="utf-8")
     assert text == (
         "# app\n"
         'title = "{{ title }}"\n'
@@ -92,13 +96,13 @@ def test_quote_placeholders_leaves_quoted_and_unknown() -> None:
 def test_round_trip_through_deploy(legacy_ws: Path) -> None:
     migrate(legacy_ws, force=True)
     deploy(legacy_ws)
-    assert (legacy_ws / "config/app.toml").read_text() == APP_CONCRETE
-    assert (legacy_ws / "config/app.toml_extra.toml").read_text() == "x = 1\n"
-    assert (legacy_ws / "svc_a/b_c.toml").read_text() == 'name = "svc"\n'
+    assert (legacy_ws / "config/app.toml").read_text(encoding="utf-8") == APP_CONCRETE
+    assert (legacy_ws / "config/app.toml_extra.toml").read_text(encoding="utf-8") == "x = 1\n"
+    assert (legacy_ws / "svc_a/b_c.toml").read_text(encoding="utf-8") == 'name = "svc"\n'
 
 
 def test_unattributable_key_errors_and_writes_nothing(legacy_ws: Path) -> None:
-    with (legacy_ws / "templatte.toml").open("a") as f:
+    with (legacy_ws / "templatte.toml").open("a", encoding="utf-8", newline="\n") as f:
         f.write('"./ghost.toml_k" = 1\n')
     before = _tree(legacy_ws)
     with pytest.raises(ValidationError) as ei:
@@ -108,14 +112,14 @@ def test_unattributable_key_errors_and_writes_nothing(legacy_ws: Path) -> None:
 
 
 def test_unsupported_format_template_cannot_own_keys(tmp_path: Path) -> None:
-    (tmp_path / "templatte.toml").write_text('"./a.txt_k" = 1\n')
-    (tmp_path / "a.txt.latte").write_text("k = {{k}}\n")
+    (tmp_path / "templatte.toml").write_text('"./a.txt_k" = 1\n', encoding="utf-8", newline="\n")
+    (tmp_path / "a.txt.latte").write_text("k = {{k}}\n", encoding="utf-8", newline="\n")
     with pytest.raises(ValidationError):
         migrate(tmp_path, force=True)
 
 
 def test_already_current_is_noop(tmp_path: Path) -> None:
-    (tmp_path / "templatte.toml").write_text("version = 1\n")
+    (tmp_path / "templatte.toml").write_text("version = 1\n", encoding="utf-8", newline="\n")
     before = _tree(tmp_path)
     result = migrate(tmp_path, force=True, backup=True)
     assert result.nothing_to_migrate and result.exit_code == 0
@@ -149,8 +153,8 @@ def test_backup_registry_and_rewritten_templates(
     monkeypatch.setattr("templatte.core.services._common.timestamp", lambda: "T")
     result = migrate(legacy_ws, force=True, backup=True)
     assert "templatte.toml.T.bak" in result.backups
-    assert (legacy_ws / "templatte.toml.T.bak").read_text() == LEGACY
-    assert (legacy_ws / "config/app.toml.latte.T.bak").read_text() == APP_LATTE
+    assert (legacy_ws / "templatte.toml.T.bak").read_text(encoding="utf-8") == LEGACY
+    assert (legacy_ws / "config/app.toml.latte.T.bak").read_text(encoding="utf-8") == APP_LATTE
     assert len(result.backups) == 1 + len(result.templates_rewritten)
 
 

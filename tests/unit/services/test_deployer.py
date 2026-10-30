@@ -40,7 +40,7 @@ def test_round_trip(generated: Path) -> None:
     assert set(r.created) == set(SAMPLE_FILES)
     assert r.exit_code == 0
     for rel, text in SAMPLE_FILES.items():
-        assert (generated / rel).read_text() == text, rel
+        assert (generated / rel).read_text(encoding="utf-8") == text, rel
 
 
 def test_latte_untouched(generated: Path) -> None:
@@ -49,7 +49,9 @@ def test_latte_untouched(generated: Path) -> None:
     deploy(generated)  # unchanged
     drop_concrete(generated)
     deploy(generated)
-    (generated / "settings.ini").write_text("[main]\nname = other\n")
+    (generated / "settings.ini").write_text(
+        "[main]\nname = other\n", encoding="utf-8", newline="\n"
+    )
     deploy(generated, force=True, backup=True)
     deploy(generated, dry_run=True, diff=True)
     assert latte_snapshot(generated) == before
@@ -57,21 +59,21 @@ def test_latte_untouched(generated: Path) -> None:
 
 def test_profile_override(generated: Path) -> None:
     drop_concrete(generated)
-    with (generated / "templatte.toml").open("a") as f:
+    with (generated / "templatte.toml").open("a", encoding="utf-8", newline="\n") as f:
         f.write('\n[profiles.prod."config/app.toml".values]\n"server.port" = 443\n')
     deploy(generated, profile="prod")
-    assert "port = 443" in (generated / "config/app.toml").read_text()
+    assert "port = 443" in (generated / "config/app.toml").read_text(encoding="utf-8")
     (generated / "config/app.toml").unlink()
     deploy(generated)
-    assert "port = 8080" in (generated / "config/app.toml").read_text()
+    assert "port = 8080" in (generated / "config/app.toml").read_text(encoding="utf-8")
 
 
 def test_missing_values_aggregate_nothing_written(generated: Path) -> None:
     drop_concrete(generated)
-    text = (generated / "templatte.toml").read_text()
+    text = (generated / "templatte.toml").read_text(encoding="utf-8")
     text = text.replace('"server.port" = 8080\n', "").replace("PORT = 9000\n", "")
     text = text.replace('"main.name" = "demo"\n', "")
-    (generated / "templatte.toml").write_text(text)
+    (generated / "templatte.toml").write_text(text, encoding="utf-8", newline="\n")
     before = snapshot(generated)
     with pytest.raises(MissingValuesError) as ei:
         deploy(generated)
@@ -90,26 +92,26 @@ def test_missing_registry(ws: Path) -> None:
 
 
 def test_legacy_registry(ws: Path) -> None:
-    (ws / "templatte.toml").write_text('"./a_b" = 1\n')
+    (ws / "templatte.toml").write_text('"./a_b" = 1\n', encoding="utf-8", newline="\n")
     with pytest.raises(LegacyRegistryError):
         deploy(ws)
 
 
 def test_skip_force_backup(generated: Path) -> None:
     target = generated / "config/data.json"
-    target.write_text('{"changed": 1}\n')
+    target.write_text('{"changed": 1}\n', encoding="utf-8", newline="\n")
     r = deploy(generated)
     assert r.skipped_existing == ("config/data.json",)
-    assert target.read_text() == '{"changed": 1}\n'
+    assert target.read_text(encoding="utf-8") == '{"changed": 1}\n'
 
     r = deploy(generated, force=True)
     assert r.overwritten == ("config/data.json",) and r.backups == ()
-    assert target.read_text() == SAMPLE_FILES["config/data.json"]
+    assert target.read_text(encoding="utf-8") == SAMPLE_FILES["config/data.json"]
 
-    target.write_text('{"changed": 2}\n')
+    target.write_text('{"changed": 2}\n', encoding="utf-8", newline="\n")
     r = deploy(generated, force=True, backup=True)
     assert r.backups == ("config/data.json.20260101T000000.bak",)
-    assert (generated / r.backups[0]).read_text() == '{"changed": 2}\n'
+    assert (generated / r.backups[0]).read_text(encoding="utf-8") == '{"changed": 2}\n'
 
 
 def test_unchanged_no_write(generated: Path) -> None:
@@ -120,7 +122,7 @@ def test_unchanged_no_write(generated: Path) -> None:
 
 
 def test_dry_run_writes_nothing(generated: Path) -> None:
-    (generated / "settings.ini").write_text("[main]\nname = x\n")
+    (generated / "settings.ini").write_text("[main]\nname = x\n", encoding="utf-8", newline="\n")
     (generated / ".env").unlink()
     before = snapshot(generated)
     r = deploy(generated, dry_run=True, force=True, backup=True)
@@ -129,7 +131,7 @@ def test_dry_run_writes_nothing(generated: Path) -> None:
 
 
 def test_diff(generated: Path) -> None:
-    (generated / "settings.ini").write_text("[main]\nname = x\n")
+    (generated / "settings.ini").write_text("[main]\nname = x\n", encoding="utf-8", newline="\n")
     (generated / ".env").unlink()
     r = deploy(generated, diff=True, dry_run=True)
     assert "-name = x" in r.diffs["settings.ini"] and "+name = demo" in r.diffs["settings.ini"]
@@ -157,5 +159,7 @@ def test_single_file_errors(generated: Path) -> None:
 
 def test_skips_standing_dirs(generated: Path) -> None:
     (generated / "node_modules").mkdir()
-    (generated / "node_modules" / "x.toml.latte").write_text("a = '{{ nope }}'\n")
+    (generated / "node_modules" / "x.toml.latte").write_text(
+        "a = '{{ nope }}'\n", encoding="utf-8", newline="\n"
+    )
     deploy(generated)  # would raise if discovered

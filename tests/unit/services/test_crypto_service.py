@@ -30,7 +30,7 @@ def engine() -> AesGcmCryptoEngine:
 
 @pytest.fixture
 def reg(tmp_path: Path) -> Path:
-    (tmp_path / "templatte.toml").write_text(REGISTRY)
+    (tmp_path / "templatte.toml").write_text(REGISTRY, encoding="utf-8", newline="\n")
     return tmp_path
 
 
@@ -48,7 +48,7 @@ class FakeStdin(io.StringIO):
 
 def test_priority_arg_wins(tmp_path: Path) -> None:
     f = tmp_path / "pw"
-    f.write_text("file-pass\n")
+    f.write_text("file-pass\n", encoding="utf-8", newline="\n")
     got = acquire_passphrase(
         passphrase="arg-pass",
         passphrase_file=f,
@@ -61,7 +61,7 @@ def test_priority_arg_wins(tmp_path: Path) -> None:
 
 def test_priority_file_over_env_stdin_prompt(tmp_path: Path) -> None:
     f = tmp_path / "pw"
-    f.write_text("file-pass\n")
+    f.write_text("file-pass\n", encoding="utf-8", newline="\n")
     got = acquire_passphrase(
         passphrase_file=f,
         environ={"TEMPLATTE_PASSPHRASE": "env-pass"},
@@ -187,19 +187,19 @@ def test_press_weak_passphrase(reg: Path, engine: AesGcmCryptoEngine) -> None:
 def test_press_missing_and_legacy_registry(tmp_path: Path, engine: AesGcmCryptoEngine) -> None:
     with pytest.raises(ValidationError):
         press(tmp_path, passphrase=PASS, engine=engine)
-    (tmp_path / "templatte.toml").write_text('"./a_b" = 1\n')
+    (tmp_path / "templatte.toml").write_text('"./a_b" = 1\n', encoding="utf-8", newline="\n")
     with pytest.raises(LegacyRegistryError):
         press(tmp_path, passphrase=PASS, engine=engine)
 
 
 def test_press_existing_output_requires_force(reg: Path, engine: AesGcmCryptoEngine) -> None:
-    (reg / "templatte.toml.enc").write_text("old")
+    (reg / "templatte.toml.enc").write_text("old", encoding="utf-8", newline="\n")
     with pytest.raises(UsageError):
         press(reg, passphrase=PASS, engine=engine)
-    assert (reg / "templatte.toml.enc").read_text() == "old"
+    assert (reg / "templatte.toml.enc").read_text(encoding="utf-8") == "old"
     assert (reg / "templatte.toml").exists()
     press(reg, passphrase=PASS, force=True, engine=engine)
-    assert (reg / "templatte.toml.enc").read_text() != "old"
+    assert (reg / "templatte.toml.enc").read_text(encoding="utf-8") != "old"
 
 
 def test_press_output_outside_workspace(reg: Path, engine: AesGcmCryptoEngine) -> None:
@@ -233,7 +233,7 @@ def test_pour_accepts_short_passphrase(reg: Path, engine: AesGcmCryptoEngine) ->
     env = engine.encrypt(b"version = 1\n", "short")
     from templatte.adapters.crypto import to_json
 
-    (reg / "templatte.toml.enc").write_text(to_json(env))
+    (reg / "templatte.toml.enc").write_text(to_json(env), encoding="utf-8", newline="\n")
     (reg / "templatte.toml").unlink()
     pour(reg, passphrase="short", engine=engine)
     assert (reg / "templatte.toml").read_bytes() == b"version = 1\n"
@@ -242,7 +242,7 @@ def test_pour_accepts_short_passphrase(reg: Path, engine: AesGcmCryptoEngine) ->
 def test_pour_corrupted_and_missing_input(reg: Path, engine: AesGcmCryptoEngine) -> None:
     with pytest.raises(UsageError):
         pour(reg, passphrase=PASS, engine=engine)
-    (reg / "templatte.toml.enc").write_text("{not json")
+    (reg / "templatte.toml.enc").write_text("{not json", encoding="utf-8", newline="\n")
     with pytest.raises(CorruptedEnvelopeError):
         pour(reg, passphrase=PASS, force=True, engine=engine)
 
@@ -250,13 +250,13 @@ def test_pour_corrupted_and_missing_input(reg: Path, engine: AesGcmCryptoEngine)
 def test_pour_force_backup(reg: Path, engine: AesGcmCryptoEngine) -> None:
     original = (reg / "templatte.toml").read_bytes()
     press(reg, passphrase=PASS, keep_plain=True, engine=engine)
-    (reg / "templatte.toml").write_text("local edits\n")
+    (reg / "templatte.toml").write_text("local edits\n", encoding="utf-8", newline="\n")
     with pytest.raises(UsageError):
         pour(reg, passphrase=PASS, engine=engine)
-    assert (reg / "templatte.toml").read_text() == "local edits\n"
+    assert (reg / "templatte.toml").read_text(encoding="utf-8") == "local edits\n"
     r = pour(reg, passphrase=PASS, force=True, backup=True, engine=engine)
     assert r.backup == "templatte.toml.20260101T000000.bak"
-    assert (reg / r.backup).read_text() == "local edits\n"
+    assert (reg / r.backup).read_text(encoding="utf-8") == "local edits\n"
     assert (reg / "templatte.toml").read_bytes() == original
 
 
@@ -276,4 +276,4 @@ def test_pour_keep_encrypted_false(reg: Path, engine: AesGcmCryptoEngine) -> Non
 def test_pour_custom_paths(reg: Path, engine: AesGcmCryptoEngine) -> None:
     press(reg, output="vault/x.enc", passphrase=PASS, engine=engine)
     pour(reg, input="vault/x.enc", output="restored.toml", passphrase=PASS, engine=engine)
-    assert (reg / "restored.toml").read_text() == REGISTRY
+    assert (reg / "restored.toml").read_text(encoding="utf-8") == REGISTRY

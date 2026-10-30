@@ -38,7 +38,9 @@ def test_empty_matcher() -> None:
 
 
 def test_from_gitignore(tmp_path: Path) -> None:
-    (tmp_path / ".gitignore").write_text("*.log\n!keep.log\nsecret/\n")
+    (tmp_path / ".gitignore").write_text(
+        "*.log\n!keep.log\nsecret/\n", encoding="utf-8", newline="\n"
+    )
     m = IgnoreMatcher.from_gitignore(tmp_path)
     assert m.matches("a.log")
     assert not m.matches("keep.log")

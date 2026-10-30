@@ -11,7 +11,7 @@ def make(root: Path, files: dict[str, str]) -> None:
     for rel, text in files.items():
         p = root / rel
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(text)
+        p.write_text(text, encoding="utf-8", newline="\n")
 
 
 def paths(result) -> list[str]:  # type: ignore[no-untyped-def]

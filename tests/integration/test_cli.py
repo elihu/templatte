@@ -32,7 +32,7 @@ def fast_crypto(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.fixture
 def ws(tmp_path: Path) -> Path:
     (tmp_path / "config").mkdir()
-    (tmp_path / "config/app.toml").write_text(APP_TOML)
+    (tmp_path / "config/app.toml").write_text(APP_TOML, encoding="utf-8", newline="\n")
     return tmp_path
 
 
@@ -100,7 +100,9 @@ def test_genelatte_existing_latte_skipped_with_warning(brewed: Path, invoke: Inv
 
 
 def test_genelatte_manual_review_exits_3(ws: Path, invoke: Invoke) -> None:
-    (ws / "config/other.toml").write_text('x = "${{ secrets.X }}"\n')
+    (ws / "config/other.toml").write_text(
+        'x = "${{ secrets.X }}"\n', encoding="utf-8", newline="\n"
+    )
     r = invoke("genelatte")
     d = doc(r)
     assert r.exit_code == 3
@@ -128,7 +130,7 @@ def test_deploy_dry_run_and_real_json(brewed: Path, invoke: Invoke) -> None:
 
     d = doc(invoke("deploy"))
     assert d["target_files"][0]["action"] == "create"
-    assert (brewed / "config/app.toml").read_text() == APP_TOML
+    assert (brewed / "config/app.toml").read_text(encoding="utf-8") == APP_TOML
 
 
 def test_check_grind_press_pour_migrate_json(brewed: Path, invoke: Invoke) -> None:
@@ -173,7 +175,11 @@ def test_missing_registry_exit_3(invoke: Invoke) -> None:
 
 def test_missing_values_exit_3(brewed: Path, invoke: Invoke) -> None:
     reg = brewed / "templatte.toml"
-    reg.write_text("\n".join(ln for ln in reg.read_text().splitlines() if "hunter2" not in ln))
+    reg.write_text(
+        "\n".join(ln for ln in reg.read_text(encoding="utf-8").splitlines() if "hunter2" not in ln),
+        encoding="utf-8",
+        newline="\n",
+    )
     r = invoke("deploy")
     d = doc(r)
     assert r.exit_code == 3 and d["error_type"] == "MissingValuesError"
@@ -192,7 +198,7 @@ def test_wrong_passphrase_exit_4(brewed: Path, invoke: Invoke) -> None:
 
 def test_corrupted_envelope_exit_4(brewed: Path, invoke: Invoke) -> None:
     assert invoke("press", "--passphrase", PASS).exit_code == 0
-    (brewed / "templatte.toml.enc").write_text("{not an envelope")
+    (brewed / "templatte.toml.enc").write_text("{not an envelope", encoding="utf-8", newline="\n")
     r = invoke("pour", "--passphrase", PASS)
     assert r.exit_code == 4
     assert doc(r)["error_type"] == "CorruptedEnvelopeError"
@@ -205,7 +211,9 @@ def test_weak_passphrase_exit_4(brewed: Path, invoke: Invoke) -> None:
 
 def test_drift_exit_5(brewed: Path, invoke: Invoke) -> None:
     invoke("deploy")
-    (brewed / "config/app.toml").write_text('[db]\nhost = "changed"\npassword = "hunter2"\n')
+    (brewed / "config/app.toml").write_text(
+        '[db]\nhost = "changed"\npassword = "hunter2"\n', encoding="utf-8", newline="\n"
+    )
     r = invoke("check")
     d = doc(r)
     assert r.exit_code == 5
@@ -270,7 +278,7 @@ def test_full_cycle_and_latte_immutability(ws: Path, invoke: Invoke) -> None:
     assert latte
     assert invoke("deploy").exit_code == 0
     assert latte_snapshot(ws) == latte
-    assert (ws / "config/app.toml").read_text() == APP_TOML
+    assert (ws / "config/app.toml").read_text(encoding="utf-8") == APP_TOML
     assert invoke("check").exit_code == 0
     assert invoke("grind", "--force").exit_code == 0
     assert not (ws / "config/app.toml").exists()
@@ -282,7 +290,7 @@ def test_full_cycle_and_latte_immutability(ws: Path, invoke: Invoke) -> None:
     assert invoke("pour", "--passphrase", PASS).exit_code == 0
     assert (ws / "templatte.toml").read_bytes() == original_registry
     assert invoke("deploy").exit_code == 0
-    assert (ws / "config/app.toml").read_text() == APP_TOML
+    assert (ws / "config/app.toml").read_text(encoding="utf-8") == APP_TOML
     assert latte_snapshot(ws) == latte
 
 
@@ -304,7 +312,7 @@ def test_passphrase_sources(brewed: Path, invoke: Invoke, source: str, tmp_path:
     args: list[str] = []
     if source == "file":
         pf = brewed / "pw.txt"
-        pf.write_text(PASS + "\n")
+        pf.write_text(PASS + "\n", encoding="utf-8", newline="\n")
         args = ["--passphrase-file", str(pf)]
     elif source == "env":
         kwargs["env"] = {"TEMPLATTE_PASSPHRASE": PASS}
@@ -332,11 +340,11 @@ def test_passphrase_flag_warns_on_stderr_only(brewed: Path, invoke: Invoke) -> N
 def test_noninteractive_deploy_without_force_exit_2(brewed: Path, invoke: Invoke) -> None:
     invoke("deploy")
     target = brewed / "config/app.toml"
-    target.write_text("# local edit\n")
+    target.write_text("# local edit\n", encoding="utf-8", newline="\n")
     for globals_ in (("--json",), ()):
         r = invoke("deploy", globals_=globals_)
         assert r.exit_code == 2
-        assert target.read_text() == "# local edit\n"
+        assert target.read_text(encoding="utf-8") == "# local edit\n"
     assert "--force" in invoke("deploy", globals_=()).stderr
 
 
@@ -355,14 +363,14 @@ def tty(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_interactive_deploy_confirm_yes_and_no(brewed: Path, invoke: Invoke, tty: None) -> None:
     invoke("deploy")
     target = brewed / "config/app.toml"
-    target.write_text("# local edit\n")
+    target.write_text("# local edit\n", encoding="utf-8", newline="\n")
     r = invoke("deploy", globals_=(), input="n\n")
-    assert r.exit_code != 0 and target.read_text() == "# local edit\n"
+    assert r.exit_code != 0 and target.read_text(encoding="utf-8") == "# local edit\n"
     assert "Deploy will overwrite 1 existing files. Proceed? [y/N]" in r.output
     r = invoke("deploy", globals_=(), input="y\n")
-    assert r.exit_code == 0 and target.read_text() == APP_TOML
+    assert r.exit_code == 0 and target.read_text(encoding="utf-8") == APP_TOML
     # --json is never interactive, even on a TTY.
-    target.write_text("# local edit\n")
+    target.write_text("# local edit\n", encoding="utf-8", newline="\n")
     assert invoke("deploy", input="y\n").exit_code == 2
 
 
@@ -411,11 +419,11 @@ def test_config_file_relative_to_workspace(
 
 
 def test_profile_option_applies(brewed: Path, invoke: Invoke) -> None:
-    with (brewed / "templatte.toml").open("a") as f:
+    with (brewed / "templatte.toml").open("a", encoding="utf-8", newline="\n") as f:
         f.write('\n[profiles.prod."config/app.toml".values]\n"db.host" = "prod-host"\n')
     d = doc(invoke("deploy", "--force", globals_=("--json", "-p", "prod")))
     assert d["target_files"][0]["action"] == "overwrite"
-    assert 'host = "prod-host"' in (brewed / "config/app.toml").read_text()
+    assert 'host = "prod-host"' in (brewed / "config/app.toml").read_text(encoding="utf-8")
 
 
 def test_no_color_and_no_ansi_in_human_output(brewed: Path, invoke: Invoke) -> None:
@@ -433,9 +441,11 @@ def test_main_entrypoint_importable() -> None:
 
 @pytest.fixture
 def legacy(ws: Path) -> Path:
-    (ws / "templatte.toml").write_text(LEGACY)
+    (ws / "templatte.toml").write_text(LEGACY, encoding="utf-8", newline="\n")
     (ws / "config/app.toml").unlink()
-    (ws / "config/app.toml.latte").write_text("title = {{title}}\ndb.user = {{{db.user}}}\n")
+    (ws / "config/app.toml.latte").write_text(
+        "title = {{title}}\ndb.user = {{{db.user}}}\n", encoding="utf-8", newline="\n"
+    )
     return ws
 
 
@@ -462,7 +472,9 @@ def test_migrate_cycle(legacy: Path, invoke: Invoke) -> None:
     assert d["nothing_to_migrate"] is False and len(d["backups"]) == 2
     assert d["files"][0]["path"] == "config/app.toml"
     assert invoke("deploy").exit_code == 0
-    assert (legacy / "config/app.toml").read_text() == 'title = "demo"\ndb.user = "bob"\n'
+    assert (legacy / "config/app.toml").read_text(
+        encoding="utf-8"
+    ) == 'title = "demo"\ndb.user = "bob"\n'
     assert invoke("check").exit_code == 0
 
 
@@ -475,7 +487,7 @@ def test_migrate_interactive_confirm(legacy: Path, invoke: Invoke, tty: None) ->
 
 
 def test_migrate_unattributable_exit_3(legacy: Path, invoke: Invoke) -> None:
-    with (legacy / "templatte.toml").open("a") as f:
+    with (legacy / "templatte.toml").open("a", encoding="utf-8", newline="\n") as f:
         f.write('"./ghost.toml_k" = 1\n')
     before = (legacy / "templatte.toml").read_bytes()
     r = invoke("migrate", "--force")

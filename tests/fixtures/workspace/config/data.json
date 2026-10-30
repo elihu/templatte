@@ -1,0 +1,25 @@
+{
+  "name": "demo",
+  "version": 3,
+  "features": {
+    "search": true,
+    "limits": {
+      "max_items": 50,
+      "ratio": 0.5
+    }
+  },
+  "tags": [
+    "a",
+    "b"
+  ],
+  "endpoints": [
+    {
+      "path": "/health",
+      "public": true
+    },
+    {
+      "path": "/admin",
+      "public": false
+    }
+  ]
+}

@@ -87,14 +87,18 @@ def test_clean_no_git(generated: Path) -> None:
 def test_missing_registry_and_legacy(ws: Path) -> None:
     with pytest.raises(ValidationError):
         check(ws)
-    (ws / "templatte.toml").write_text('"./a_b" = 1\n')
+    (ws / "templatte.toml").write_text('"./a_b" = 1\n', encoding="utf-8", newline="\n")
     with pytest.raises(LegacyRegistryError):
         check(ws)
 
 
 def test_missing_values(generated: Path) -> None:
-    text = (generated / "templatte.toml").read_text().replace('"server.port" = 8080\n', "")
-    (generated / "templatte.toml").write_text(text)
+    text = (
+        (generated / "templatte.toml")
+        .read_text(encoding="utf-8")
+        .replace('"server.port" = 8080\n', "")
+    )
+    (generated / "templatte.toml").write_text(text, encoding="utf-8", newline="\n")
     r = check(generated)
     [f] = [f for f in r.findings if f.kind == MISSING_VALUES]
     assert f.path == "config/app.toml" and f.missing_keys == ("server.port",)
@@ -103,7 +107,9 @@ def test_missing_values(generated: Path) -> None:
 
 
 def test_drift_with_diff(generated: Path) -> None:
-    (generated / "settings.ini").write_text("[main]\nname = other\n")
+    (generated / "settings.ini").write_text(
+        "[main]\nname = other\n", encoding="utf-8", newline="\n"
+    )
     r = check(generated)
     [f] = r.findings
     assert f.kind == DRIFT and f.severity == ERROR and f.path == "settings.ini"
@@ -117,7 +123,7 @@ def test_no_drift_when_concrete_absent(generated: Path) -> None:
 
 
 def test_profile_changes_expected(generated: Path) -> None:
-    with (generated / "templatte.toml").open("a") as f:
+    with (generated / "templatte.toml").open("a", encoding="utf-8", newline="\n") as f:
         f.write('\n[profiles.prod."settings.ini".values]\n"main.name" = "prod"\n')
     assert check(generated).exit_code == 0
     r = check(generated, profile="prod")
@@ -125,9 +131,15 @@ def test_profile_changes_expected(generated: Path) -> None:
 
 
 def test_drift_dominates_missing(generated: Path) -> None:
-    (generated / "settings.ini").write_text("[main]\nname = other\n")
-    text = (generated / "templatte.toml").read_text().replace('"server.port" = 8080\n', "")
-    (generated / "templatte.toml").write_text(text)
+    (generated / "settings.ini").write_text(
+        "[main]\nname = other\n", encoding="utf-8", newline="\n"
+    )
+    text = (
+        (generated / "templatte.toml")
+        .read_text(encoding="utf-8")
+        .replace('"server.port" = 8080\n', "")
+    )
+    (generated / "templatte.toml").write_text(text, encoding="utf-8", newline="\n")
     assert check(generated).exit_code == 5
 
 
@@ -149,19 +161,21 @@ class TestGit:
 
     def test_not_ignored_leak(self, generated: Path) -> None:
         git(generated, "init", "-q")
-        (generated / ".gitignore").write_text("")
+        (generated / ".gitignore").write_text("", encoding="utf-8", newline="\n")
         r = check(generated)
         paths = {f.path for f in r.findings if f.kind == GIT_LEAK}
         assert "config/app.toml" in paths and "templatte.toml" in paths and r.exit_code == 5
 
     def test_check_git_disabled(self, generated: Path) -> None:
         git(generated, "init", "-q")
-        (generated / ".gitignore").write_text("")
+        (generated / ".gitignore").write_text("", encoding="utf-8", newline="\n")
         assert check(generated, check_git=False).findings == ()
 
     def test_custom_config_path_leak(self, ws: Path) -> None:
         generate(ws, config_file=Path("conf/reg.toml"), update_gitignore=False)
         git(ws, "init", "-q")
-        (ws / ".gitignore").write_text("config/\nsettings.ini\n.env\n")
+        (ws / ".gitignore").write_text(
+            "config/\nsettings.ini\n.env\n", encoding="utf-8", newline="\n"
+        )
         r = check(ws, config_file=Path("conf/reg.toml"))
         assert [f.path for f in r.findings] == ["conf/reg.toml"]

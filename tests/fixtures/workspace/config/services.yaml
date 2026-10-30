@@ -1,0 +1,18 @@
+# Dummy service definitions (fixture, no real values).
+defaults: &defaults
+  timeout: 30                       # seconds
+  retries: 3
+
+web:
+  <<: *defaults
+  name: web
+  ports: [8000, 8001]
+  env:
+    mode: production
+    api_token: dummy-token-0000
+
+workers:
+  - name: alpha
+    queue: default
+  - name: beta
+    queue: priority

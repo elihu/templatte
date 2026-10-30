@@ -1,0 +1,9 @@
+- id: templatte-check
+  name: templatte-check
+  description: Verifies configuration templates, checks values coverage and blocks git secret leaks.
+  entry: templatte check --strict
+  language: python
+  pass_filenames: false
+  always_run: true
+  stages: [pre-commit, pre-push]
+  minimum_pre_commit_version: "3.2.0"
