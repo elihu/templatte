@@ -3,7 +3,7 @@
 *Crafting configurations like a barista.*
 
 <p align="center">
-  <img src="static/templatte.png" alt="Templatte logo" width="280" height="auto">
+  <img src="static/templatte.svg" alt="Templatte logo" width="280" height="280">
 </p>
 
 <p align="center">
