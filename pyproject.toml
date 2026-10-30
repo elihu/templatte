@@ -28,7 +28,7 @@ templatte = "templatte.main:app"
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
-    "ruff>=0.3.0",
+    "ruff>=0.17.3",
 ]
 
 [tool.hatch.build.targets.wheel]
