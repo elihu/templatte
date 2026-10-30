@@ -77,7 +77,7 @@ def test_genelatte_json(ws: Path, invoke: Invoke) -> None:
     d = doc(r)
     assert r.exit_code == 0
     assert d["status"] == "success" and d["command"] == "genelatte" and d["exit_code"] == 0
-    assert d["workspace"] == str(ws)
+    assert d["workspace"] == ws.as_posix()
     assert sorted(d["generated_templates"]) == ["config/app.toml.latte"]
     assert d["values_file"] == "templatte.toml"
     assert d["total_keys_extracted"] == 2
