@@ -284,8 +284,8 @@ The CI workflow (§5) runs on every pull request, including ones opened from for
 Concretely, on top of the roles already defined in §2.1, both `main` and `develop` are configured on GitHub with:
 
 1. Require a pull request before merging — direct pushes are rejected even for repository administrators.
-2. Require the CI workflow (§5) to pass and the branch to be up to date with its base before merging.
-3. Require at least one approving review before a pull request from an external contributor (i.e. not the maintainer or a delegated agent acting on the maintainer's branch) can merge.
-4. Disallow force-pushes and branch deletion on `main` and `develop`.
+2. Require every CI job (§5) to pass before merging: `lint` and the six `test (<os>, py<version>)` jobs. On `develop` the branch must also be up to date with its base. `main` does not require it: every release leaves a merge commit on `main` that never flows back into `develop`, so the rule would mark each release pull request as out of date.
+3. No approving review is required. GitHub cannot tell an external contributor from the maintainer, and the maintainer cannot approve their own pull requests, so a required approval would block the maintainer's own work. External contributions are still gated, since only the maintainer can merge them.
+4. Disallow force-pushes and branch deletion on `main` and `develop`, and require open review conversations to be resolved before merging.
 
 These rules are what make "Strictly Protected" in §2.1's table an enforced GitHub setting rather than a documentation-only convention.
