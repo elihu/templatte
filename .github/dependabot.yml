@@ -1,13 +1,16 @@
 version: 2
+# Updates go through develop like any other change (04 spec §2.1), never straight to main.
 updates:
   # Keeps the SHA-pinned actions in .github/workflows current.
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
 
   # Dependabot's `uv` ecosystem keeps uv.lock current (supported per GitHub docs).
   - package-ecosystem: "uv"
     directory: "/"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
