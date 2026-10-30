@@ -132,7 +132,7 @@ flowchart TD
 
 #### `TASK-102`: Domain Models (`models.py`)
 * **Target File:** `templatte/core/models.py`
-* **Objective:** Pydantic v2 data models for `ConfigFile`, `TemplateFile`, `ValuesRegistry`, and `CryptoEnvelope`.
+* **Objective:** Pydantic v2 data models for `ConfigFile`, `TemplateFile`, and `ValuesRegistry`. The cryptographic envelope is modeled by `TASK-301` in `templatte/adapters/crypto/envelope.py`, not here.
 * **Verification Command:** `uv run pytest tests/unit/test_models.py`
 
 #### `TASK-103`: Values Registry Persistence (`registry.py`)
@@ -202,13 +202,13 @@ flowchart TD
 
 #### `TASK-402`: Scanner & Ignore Evaluation (`scanner.py`, `ignore.py`)
 * **Target Files:**
-  * `templatte/core/services/scanner.py` (workspace file discovery: applies the default whitelist, `--include`/`--exclude`, the hard denylist, and the `{{ }}`/`${{ }}` foreign-delimiter detection from `00_MASTER_SPEC.md` §6.2)
+  * `templatte/core/services/scanner.py` (workspace file discovery: applies the default whitelist, `--include`/`--exclude`, the hard denylist, and the `{{ }}`/`${{ }}` foreign-delimiter detection from `00_MASTER_SPEC.md` §6.2). Discovery deliberately does **not** apply the workspace `.gitignore`: `genelatte` itself adds every templatized concrete file to it, so honoring it would make every re-run discover nothing. `.gitignore` evaluation is used by the checker (`TASK-405`) for leak detection.
   * `templatte/utils/ignore.py` (`.gitignore`-compatible pattern evaluation built on `pathspec`, per `02_ARCHITECTURE_AND_EXTENSIBILITY.md` §5)
 * **Verification Command:** `uv run pytest tests/unit/test_scanner.py tests/unit/test_ignore.py`
 
 #### `TASK-403`: Generator Service (`genelatte`)
 * **Target File:** `templatte/core/services/generator.py`
-* **Requirement:** Generates `.latte` templates, writes `templatte.toml`, and idempotently manages the Templatte-owned block in `.gitignore` (marker-delimited, covering `templatte.toml`, `templatte.toml.enc`, and each templatized concrete file).
+* **Requirement:** Generates `.latte` templates, writes `templatte.toml`, and idempotently manages the Templatte-owned block in `.gitignore` (marker-delimited, covering `templatte.toml`, `templatte.*.toml`, each templatized concrete file, and the timestamped `.bak` backups of all of them — but never `templatte.toml.enc`, which is the trackable encrypted artifact; see `04_GIT_AND_WORKFLOW_SPEC.md` §3.2). On re-runs, entries for files not processed in that run, `profiles`, `workspace`, and `template` are preserved untouched; for a processed file, `values` are replaced by the freshly extracted ones (the concrete file is the source of truth at `genelatte` time) and existing `secrets` flags are kept for keys that still exist.
 
 #### `TASK-404`: Deployer Service (`deploy`)
 * **Target File:** `templatte/core/services/deployer.py`

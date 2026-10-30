@@ -241,7 +241,7 @@ To prevent data corruption during crashes or aborted runs:
 2. **Path Sanitization:**
    * Relative paths are validated to ensure they do not traverse outside the workspace root (`path.resolve().is_relative_to(workspace_root)`).
 3. **Workspace Ignore Filtering:**
-   * Files matching `.gitignore` or standard excludes (`.git`, `.venv`, `node_modules`, `dist`, `__pycache__`) are skipped automatically.
+   * Standard excludes (`.git`, `.venv`, `node_modules`, `dist`, `__pycache__`) are skipped automatically. The workspace `.gitignore` is **not** applied to `genelatte` discovery (templatized concrete files are themselves gitignored by Templatte); it is evaluated by `check` to detect untracked-but-uncovered leaks.
    * `.gitignore` semantics (negation with `!`, anchoring with a leading `/`, recursive globs with `**`) are evaluated using the `pathspec` library rather than a hand-rolled matcher — `.gitignore` pattern syntax has enough edge cases (negation ordering, directory-only patterns, escaping) that a purpose-built, well-tested library is the correct dependency to take rather than reimplementing it.
 
 ---

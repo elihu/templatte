@@ -69,7 +69,7 @@ templatte genelatte [OPTIONS]
    f. Record values in `templatte.toml` under `[files."<relative_path>".values]`, flagging any key that looks credential-shaped (matching `password`, `secret`, `token`, `key`) in the sibling `[files."<relative_path>".secrets]` table (see `00_MASTER_SPEC.md` §5, "Secret Marking").
 5. Write the `.latte` files alongside each original file.
 6. Write or update `templatte.toml`.
-7. Unless `--no-gitignore-update` is true: after each `.latte` file is generated, add the templatized concrete file's path, together with `templatte.toml` and `templatte.toml.enc`, to the workspace `.gitignore`. Templatte creates the `# >>> templatte managed >>>` / `# <<< templatte managed <<<` marker block on first run if absent, and rewrites only the content between the markers on subsequent runs — making the update idempotent and safe to re-run without disturbing the rest of the file.
+7. Unless `--no-gitignore-update` is true: after each `.latte` file is generated, add the templatized concrete file's path, together with `templatte.toml`, `templatte.*.toml`, and the timestamped `.bak` backup pattern of each of these files (backups hold plaintext secrets), to the workspace `.gitignore`. `templatte.toml.enc` is intentionally **not** ignored: it is the encrypted artifact meant to be committed (see `04_GIT_AND_WORKFLOW_SPEC.md` §3.1–§3.2). Templatte creates the `# >>> templatte managed >>>` / `# <<< templatte managed <<<` marker block on first run if absent, and rewrites only the content between the markers on subsequent runs — making the update idempotent and safe to re-run without disturbing the rest of the file.
 8. Output summary (files scanned, templates generated, keys extracted, files flagged for manual review).
 
 ---

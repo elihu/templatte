@@ -138,15 +138,16 @@ When `templatte genelatte` executes, it inspects the workspace root for `.gitign
    ```gitignore
    # >>> templatte managed >>>
    # Templatte values & local runtime configurations.
-   templatte.toml
-   templatte.*.toml
-   # templatte.toml.enc and *.latte files are intentionally NOT ignored above:
-   # they are the trackable artifacts of the Templatte lifecycle (see 01_FUNCTIONAL_SPEC.md §2.6).
-   config/app.toml
    .env
+   .env.*.bak
+   config/app.toml
+   config/app.toml.*.bak
+   templatte.*.toml
+   templatte.toml
+   templatte.toml.*.bak
    # <<< templatte managed <<<
    ```
-   Each line following the two fixed registry patterns is the workspace-relative concrete path derived from one discovered `.latte` file (e.g. `config/app.toml.latte` -> `config/app.toml`). Entries are added or removed on each run to track the current template set exactly, so a `.latte` file that is later deleted no longer leaves a stale ignore entry behind.
+   Entries are sorted and de-duplicated. `templatte.toml.enc` and `*.latte` files are intentionally never listed: they are the trackable artifacts of the Templatte lifecycle. Besides the two fixed registry patterns, each entry is either the workspace-relative concrete path derived from one discovered `.latte` file, or the `<path>.*.bak` pattern covering the timestamped backups that `deploy --backup`, `grind --backup`, and `pour --backup` write next to that file or the registry (backups contain plaintext secrets). For example, `config/app.toml.latte` yields `config/app.toml` and `config/app.toml.*.bak`. Entries are added or removed on each run to track the current template set exactly, so a `.latte` file that is later deleted no longer leaves a stale ignore entry behind.
 4. Users can disable automatic `.gitignore` updates using `--no-gitignore-update`.
 
 ---
