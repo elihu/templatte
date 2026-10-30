@@ -84,32 +84,6 @@ class ValuesRegistry(BaseModel):
         return base_values
 
 
-class KdfConfig(BaseModel):
-    """Key derivation function parameters in cryptographic envelope."""
-
-    name: str = "PBKDF2HMAC"
-    hash: str = "SHA256"
-    iterations: int = 600_000
-    salt: str
-
-
-class CryptoEnvelope(BaseModel):
-    """Authenticated encryption envelope for templatte.toml.enc."""
-
-    schema_url: str = Field(
-        default="https://templatte.dev/schema/v1/encrypted.json",
-        alias="$schema",
-    )
-    version: int = 1
-    algorithm: str = "AES-256-GCM"
-    kdf: KdfConfig
-    iv: str
-    tag: str
-    ciphertext: str
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
 class WorkspaceContext(BaseModel):
     """Runtime workspace execution context."""
 
