@@ -1,64 +1,213 @@
-> mockup
-# **Templatte** 
-### *Crafting Configurations Like a Barista* 
+# Templatte ☕️
 
-<p align="center"><img src="static/templatte.png" alt="image" width="300" height="auto">
+*Crafting configurations like a barista.*
 
-Welcome to **Templatte**, where crafting configuration files is as delightful as brewing your favorite coffee.
+<p align="center">
+  <img src="static/templatte.png" alt="Templatte logo" width="280" height="auto">
+</p>
 
-## ☕️ Brewing Your Configurations
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="License: Apache-2.0"></a>
+  <img src="https://img.shields.io/badge/python-3.10%2B-green?style=flat-square" alt="Python 3.10+">
+</p>
 
-Get ready to savor the flavor of personalized configurations with just a sip:
+Every project ends up with a `config.toml`, a `.env`, a `settings.yaml` and a
+`db.json`, half of them holding passwords. Then someone has to keep the
+`.env.example` in sync by hand, and sooner or later someone commits the real
+`.env`. We have all been that someone.
+
+Templatte splits each config file in two:
+
+- a **`.latte` template**: the file's shape, comments and all, with the values
+  replaced by placeholders. This one goes into Git.
+- the **values**, collected in a single `templatte.toml` that never goes into
+  Git as plain text. You can encrypt it into `templatte.toml.enc` and commit
+  that instead.
+
+When you need the real files back, Templatte pours the values into the
+templates. The templates stay where they are, ready for the next cup.
+
+## Install
 
 ```bash
+uv tool install templatte
+# or
 pip install templatte
 ```
 
-## 📜 Menu of Brews
-Choose your brew with finesse. Here's your barista command for a perfect cup:
+Python 3.10 or newer. Works on Linux, macOS and Windows, and needs no GPG or
+other system binaries.
 
-### `deploy`
-This command populates configuration template files by parsing the values specified in a `templatte.toml` file. It likely reads the `templatte.toml` file to extract key-value pairs and then uses these values to fill in placeholders or templates within configuration files, creating populated configuration files ready for use.
+## The menu
 
-### `genelatte`
-This command searches recursively for any configuration files (specifically TOML files for now) within the workspace. After finding these configuration files, it generates corresponding "latte" files, which could be templates containing placeholders or special markers for values. Additionally, it generates a `templatte.toml` file containing the values extracted from the original configuration files.
+| Command | Barista version | What it actually does |
+| :--- | :--- | :--- |
+| `genelatte` | Roasting | Finds your config files, writes a `.latte` template next to each one and collects the values in `templatte.toml`. Also keeps your `.gitignore` up to date. |
+| `deploy` | Serving | Renders every `.latte` into its real config file. Never touches the templates. |
+| `grind` | Cleaning the grinder | Deletes the real config files that have a template, so they can't sneak into a commit. |
+| `press` | French press | Encrypts `templatte.toml` into `templatte.toml.enc` (AES-256-GCM). |
+| `pour` | Pour-over | Decrypts `templatte.toml.enc` back into `templatte.toml`. |
+| `check` | Taste test | Looks for missing values, drift between templates and real files, and config files Git is tracking when it shouldn't. |
+| `migrate` | Changing beans | Upgrades a `templatte.toml` from Templatte 0.x to the current format. |
 
-### `grind`
-The `grind` command searches recursively for any "latte" files within the workspace and removes the original configuration files associated with them. This suggests a process where the original configuration files are replaced by their templated versions (`latte` files), likely to ensure consistency and avoid manual editing of configuration files.
+`templatte <command> --help` lists every flag.
 
-### `pour`
-This command deciphers or decrypts the values stored in the `templatte.toml` file using a passphrase provided as input.
+## A quick brew
 
-### `press`
-The `press` command cyphers or encrypts the values within the `templatte.toml` file using a passphrase. This is a security measure to protect sensitive configuration data. After encryption, the `templatte.toml` file can be safely stored or transmitted, ensuring the confidentiality of the configuration values.
+Say you have this `config/app.toml`:
 
-## ⚙️ Configuration Roastery
-Unleash the full aroma of BrewConfig at our Roastery. Explore the blend secrets here.
+```toml
+# where the app listens
+[server]
+host = "127.0.0.1"
+port = 8080
 
-1. **`genelatte`**: This command generates "latte" files and a `templatte.toml` file from existing configuration files found in the workspace. It does not directly depend on the output of any other command, but its output serves as input for the `deploy` and `grind` commands.
+[db]
+user = "barista"
+password = "hunter2"  # do not tell anyone
+```
 
-2. **`deploy`**: This command populates configuration template files by parsing the values specified in the `templatte.toml` file generated by `genelatte`. It directly depends on the output of the `genelatte` command, specifically the `templatte.toml` file and the "latte" files.
+Run:
 
-3. **`grind`**: This command removes original configuration files associated with "latte" files found in the workspace. It directly depends on the output of the `genelatte` command, as it operates on the "latte" files generated by `genelatte`.
+```bash
+templatte genelatte
+```
 
-4. **`pour`**: This command deciphers or decrypts the `templatte.toml` file. It depends on the output of the `press` command as it needs a preciously cyphered file to decipher.
+You get `config/app.toml.latte`, which is safe to commit:
 
-5. **`press`**: This command cyphers or encrypts the `templatte.toml` file. It depends on the output of the `genelatte` command to have a `templatte.toml` file to encrypt.
+```toml
+# where the app listens
+[server]
+host = "{{ server.host }}"
+port = "{{ server.port }}"
 
-## ☕️ Sip & Savor Examples
+[db]
+user = "{{ db.user }}"
+password = "{{ db.password }}"  # do not tell anyone
+```
 
+And the values go to `templatte.toml`, with anything that looks like a
+credential flagged as a secret:
 
-## 🤝 Coffee Talk & Contributions
-Join our coffee circle! Become a brew master with our guide [here](.).
+```toml
+version = 1
+default_profile = "default"
 
-## 🚨 Spills and Clean-Ups
-- **Spill**: Template grounds lost.
-  - *Clean-Up*: Double-check the path and ensure the format is as smooth as your espresso shot.
+[files."config/app.toml"]
+format = "toml"
 
-- **Spill**: Unexpected latte art in the output.
-  - *Clean-Up*: Confirm the output options; the latte art should be delightful, not unexpected.
-    
-For coffee emergencies, reach out to our Head Barista Bean Master.
+[files."config/app.toml".values]
+"server.host" = "127.0.0.1"
+"server.port" = 8080
+"db.user" = "barista"
+"db.password" = "hunter2"
 
-## 📃 Coffee Stain License
-**Templatte** is licensed under the [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) license.
+[files."config/app.toml".secrets]
+"db.password" = true
+```
+
+Don't worry about the quoted `"{{ server.port }}"`: on deploy it goes back to
+being the number `8080`. Types come from the values, not from the template.
+
+`genelatte` also adds a managed block to `.gitignore` covering `templatte.toml`,
+every real config file it templated and their `.bak` backups. Your own
+`.gitignore` lines are left alone.
+
+### Seal it, share it
+
+```bash
+export TEMPLATTE_PASSPHRASE="a long passphrase, 14 characters minimum"
+templatte press     # templatte.toml -> templatte.toml.enc, plaintext removed
+templatte grind     # remove the real config files before committing
+git add .gitignore templatte.toml.enc '*.latte'
+git commit -m "chore: templatize configuration"
+```
+
+### Brew it somewhere else
+
+On a fresh clone, a CI runner or a server:
+
+```bash
+export TEMPLATTE_PASSPHRASE="..."
+templatte pour      # templatte.toml.enc -> templatte.toml
+templatte deploy    # *.latte -> real config files
+```
+
+The passphrase can also come from `--passphrase-file`, or be typed at a prompt.
+`--passphrase` exists too, but it ends up in your shell history and in `ps`, so
+it's decaf at best.
+
+## What it preserves
+
+Templatte edits files, it doesn't regenerate them. A deploy keeps comments, key
+order, TOML inline tables, YAML anchors and multiline strings where they were.
+`.env` and INI files come back byte for byte. For every format, running
+`genelatte` and `deploy` again on the result produces exactly the same bytes, so
+redeploying won't leave noise in your `git diff`.
+
+Supported formats: TOML, YAML, JSON, INI and `.env`.
+
+## Profiles
+
+One set of templates, several environments. Override only what changes:
+
+```toml
+[profiles.prod."config/app.toml".values]
+"server.host" = "0.0.0.0"
+"server.port" = 443
+```
+
+```bash
+templatte --profile prod deploy
+```
+
+## Keeping secrets out of Git
+
+`templatte check` fails if a real config file or `templatte.toml` is tracked by
+Git or not ignored. To run it on every commit, add it to your
+`.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/elihu/templatte
+    rev: v1.0.0
+    hooks:
+      - id: templatte-check
+```
+
+## Scripting and agents
+
+Every command accepts `--json`: stdout then carries exactly one JSON document and
+everything else goes to stderr. Nothing prompts when you pass `--force` and a
+non-interactive passphrase source, so it behaves in CI and in AI coding agents.
+
+| Exit code | Meaning |
+| :---: | :--- |
+| `0` | All good |
+| `1` | Something else went wrong |
+| `2` | Bad usage |
+| `3` | Validation error (missing values, broken template, bad config) |
+| `4` | Crypto error (wrong passphrase, tampered file) |
+| `5` | Drift or a config file leaking into Git |
+| `130` | Interrupted |
+
+## Under the hood
+
+- Encryption is AES-256-GCM with a key derived by PBKDF2-HMAC-SHA256 (600,000
+  iterations). Tampering with any byte of the envelope, header included, makes
+  decryption fail.
+- Every write goes to a temporary file first and is then renamed into place, so
+  a `Ctrl+C` never leaves you with half a config.
+- `deploy` never deletes or rewrites a `.latte` file. The templates are the
+  recipe, and the recipe stays on the counter.
+
+The full design lives in [`docs/spec/`](docs/spec/00_MASTER_SPEC.md).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Found a security problem? Please read
+[SECURITY.md](SECURITY.md) and don't open a public issue.
+
+## License
+
+[Apache-2.0](LICENSE). Coffee stains not included.

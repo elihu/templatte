@@ -1,0 +1,51 @@
+name: Bug report
+description: Report a defect that is not a security vulnerability.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Do NOT paste secrets
+        This issue tracker is public. Never paste secrets, the contents of `templatte.toml`, `.enc` envelopes, `.env` contents, or workspace paths that reveal your project structure. Use dummy values and a minimal reproduction.
+
+        ## Security issues
+        If this involves the crypto engine, the envelope format, passphrase handling, plaintext leakage or `.gitignore` coverage, **do not file it here**. Report it privately as described in [SECURITY.md](https://github.com/elihu/templatte/blob/develop/SECURITY.md): https://github.com/elihu/templatte/security/advisories/new
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I removed all secrets, `templatte.toml`, `.enc` envelopes, `.env` contents and revealing paths from this report.
+          required: true
+        - label: This is not a security vulnerability (see SECURITY.md).
+          required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Commands and dummy input that reproduce the problem.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Templatte version
+      description: The installed package version (for example from `pip show templatte`).
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Operating system and Python version
+      placeholder: "Windows 11, Python 3.12"
+    validations:
+      required: true

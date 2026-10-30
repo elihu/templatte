@@ -1,0 +1,1 @@
+"""Templatte test suite."""

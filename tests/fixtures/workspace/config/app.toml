@@ -1,0 +1,35 @@
+# Dummy application configuration (fixture, no real values).
+title = "Demo App" # inline comment on a scalar
+
+[server]
+# Sibling dotted keys that share a prefix.
+host = "localhost"
+port = 8080
+tls.enabled = false
+tls.cert = "dummy-cert.pem"
+
+[database]
+name = "demo"
+credentials = { user = "demo_user", password = "dummy-password-0000" }
+description = """first line
+second line
+"""
+
+[[services]]
+name = "web"
+replicas = 2
+
+[[services]]
+name = "worker"
+replicas = 4
+
+# This table is split around another table.
+[server.limits]
+max_connections = 100
+
+[logging]
+level = "info"
+paths = ["/var/log/a", "/var/log/b"]
+
+[server.timeouts]
+read = 30
