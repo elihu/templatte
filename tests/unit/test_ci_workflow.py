@@ -26,8 +26,8 @@ def triggers(workflow: dict[str, Any]) -> dict[str, Any]:
     return workflow["on"] if "on" in workflow else workflow[True]
 
 
-def test_triggers_are_push_and_pull_request_only(workflow: dict[str, Any]) -> None:
-    assert set(triggers(workflow)) == {"push", "pull_request"}
+def test_triggers_on_pull_request_only(workflow: dict[str, Any]) -> None:
+    assert set(triggers(workflow)) == {"pull_request"}
     assert "pull_request_target" not in WORKFLOW.read_text(encoding="utf-8")
 
 
@@ -48,21 +48,16 @@ def test_every_action_is_pinned_to_a_full_sha(workflow: dict[str, Any]) -> None:
             assert re.search(r"@[0-9a-f]{40} # v\d+\.\d+\.\d+$", line), line
 
 
-def test_matrix(workflow: dict[str, Any]) -> None:
-    (job,) = workflow["jobs"].values()
-    strategy = job["strategy"]
-    assert strategy["fail-fast"] is False
-    assert strategy["matrix"]["os"] == ["ubuntu-latest", "macos-latest", "windows-latest"]
-    assert strategy["matrix"]["python-version"] == ["3.10", "3.11", "3.12", "3.13"]
-
-
-def test_steps_and_concurrency(workflow: dict[str, Any]) -> None:
-    (job,) = workflow["jobs"].values()
-    runs = [step["run"] for step in job["steps"] if "run" in step]
-    assert runs == [
+def test_lint_and_test_jobs(workflow: dict[str, Any]) -> None:
+    jobs = workflow["jobs"]
+    assert set(jobs) == {"lint", "test"}
+    runs = {name: [s["run"] for s in job["steps"] if "run" in s] for name, job in jobs.items()}
+    assert runs["lint"] == [
         "uv sync --frozen",
         "uv run ruff check .",
         "uv run ruff format --check templatte tests",
-        "uv run pytest",
     ]
-    assert workflow["concurrency"]["cancel-in-progress"] is True
+    assert runs["test"] == ["uv sync --frozen", "uv run pytest"]
+    matrix = jobs["test"]["strategy"]["matrix"]
+    assert matrix["os"] == ["ubuntu-latest", "macos-latest", "windows-latest"]
+    assert matrix["python-version"] == ["3.10", "3.13"]

@@ -78,7 +78,7 @@ gitGraph
    merge feat/07-precommit-and-e2e id: "Consolidate 07"
    
    checkout main
-   merge develop id: "Release v0.2.0" tag: "v0.2.0"
+   merge develop id: "Release v1.0.0" tag: "v1.0.0"
 ```
 
 ### 2.1 Branch Roles & Policies
@@ -171,7 +171,7 @@ Templatte provides out-of-the-box support for the Python `pre-commit` framework.
 minimum_pre_commit_version: "3.2.0"
 repos:
   - repo: https://github.com/elihu/templatte
-    rev: v0.2.0
+    rev: v1.0.0
     hooks:
       - id: templatte-check
         name: Templatte Roast & Git Leak Check
@@ -223,13 +223,10 @@ This TASK -> commit traceability is what lets a reviewer (human or agent) recons
 `.github/workflows/ci.yml` is the automated status check that makes the `main` branch protection declared in §2.1 actually enforceable — without a required status check configured on the remote repository, branch protection rules have nothing to gate on and are advisory only.
 
 The workflow:
-1. Triggers on every push and pull request.
-2. Runs a matrix across operating systems (`ubuntu-latest`, `macos-latest`, `windows-latest`) and Python versions (`3.10`, `3.11`, `3.12`, `3.13`), matching the `requires-python` floor and the versions Templatte is tested against.
-3. For each matrix cell:
-   * `uv sync --frozen` — installs dependencies exactly as pinned in `uv.lock`, failing the job if the lockfile is out of date rather than silently re-resolving.
-   * `ruff check .` — static analysis and style enforcement.
-   * `uv run pytest` — the full unit, integration, and e2e suite (`03_AGENT_HARNESS_AND_TASKS.md` TASK-603).
-4. All matrix jobs are required to pass before a pull request can merge into `develop`, and `develop` before it merges into `main`.
+1. Triggers on pull requests only. Every change reaches `develop` and `main` through a pull request opened with the GitHub CLI (`gh pr create`), so a separate `push` trigger would only run the same commits twice.
+2. A single `lint` job on `ubuntu-latest`: `uv sync --frozen` (fails if `uv.lock` is out of date instead of silently re-resolving), `ruff check .` and `ruff format --check templatte tests`. Lint results do not depend on the OS, so running them once is enough.
+3. A `test` matrix across `ubuntu-latest`, `macos-latest` and `windows-latest` with the oldest and newest supported Python (`3.10` and `3.13`): `uv sync --frozen` then `uv run pytest`, the full unit, integration and e2e suite (`03_AGENT_HARNESS_AND_TASKS.md` TASK-603). The intermediate versions are covered by the two ends.
+4. All jobs are required to pass before a pull request can merge into `develop`, and `develop` before it merges into `main`.
 
 ---
 

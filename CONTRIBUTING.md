@@ -27,9 +27,15 @@ Anything touching the crypto engine, the envelope format, passphrase handling or
    `feat/<short-name>` for a new capability).
 3. Open a pull request **against `develop`**, never `main`.
 
-CI (`.github/workflows/ci.yml`) runs on every push and pull request across
-Linux, macOS and Windows and Python 3.10 to 3.13. It needs no secrets, so it
-runs unprivileged for fork pull requests.
+Pull requests are opened with the GitHub CLI:
+
+```bash
+gh pr create --base develop --fill
+```
+
+CI (`.github/workflows/ci.yml`) runs on every pull request: lint once on
+Linux, tests on Linux, macOS and Windows with Python 3.10 and 3.13. It needs no
+secrets, so it runs unprivileged for fork pull requests.
 
 ## Commit messages
 

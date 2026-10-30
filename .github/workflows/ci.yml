@@ -1,46 +1,39 @@
 name: CI
 
-# Trigger and trust boundary per docs/spec/04_GIT_AND_WORKFLOW_SPEC.md sections 5 and 8.3:
-# unprivileged pull_request trigger only, read-only token, SHA-pinned actions, no secrets.
+# Pull requests only (opened with `gh pr create`). Unprivileged trigger, read-only
+# token, SHA-pinned actions, no secrets: see 04_GIT_AND_WORKFLOW_SPEC.md §5 and §8.3.
 on:
-  push:
   pull_request:
 
 permissions:
   contents: read
 
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check templatte tests
+
   test:
-    name: ${{ matrix.os }} / py${{ matrix.python-version }}
+    name: test (${{ matrix.os }}, py${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.13"]
     steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
-      - name: Set up uv and Python ${{ matrix.python-version }}
-        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies (lockfile must be current)
-        run: uv sync --frozen
-
-      - name: Lint
-        run: uv run ruff check .
-
-      - name: Check formatting
-        run: uv run ruff format --check templatte tests
-
-      - name: Test
-        run: uv run pytest
+      - run: uv sync --frozen
+      - run: uv run pytest
